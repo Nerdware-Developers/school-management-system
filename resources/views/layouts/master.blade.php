@@ -125,7 +125,7 @@
                                     <a href="#">
                                         <div class="media d-flex">
                                             <span class="avatar avatar-sm flex-shrink-0">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{{ URL::to('assets/img/logo-small.png') }}">
+                                                <img class="avatar-img rounded-circle" alt="" src="{{ URL::to('assets/img/logo-small.png') }}">
                                             </span>
                                             <div class="media-body flex-grow-1">
                                                 <p class="noti-details"><span class="noti-title">Mercury Software Inc</span> added a new product <span class="noti-title">Apple MacBook Pro</span></p>
@@ -152,7 +152,7 @@
                 <li class="nav-item dropdown has-arrow new-user-menus">
                     <a href="#" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">
                         <span class="user-img">
-                            <img class="rounded-circle" src="/images/{{ Session::get('avatar') }}" width="31"alt="{{ Session::get('name') }}">
+                            <img class="rounded-circle" src="/images/{{ Session::get('avatar') }}" width="31"alt="">
                             <div class="user-text">
                                 <h6>{{ Session::get('name') }}</h6>
                                 <p class="text-muted mb-0">{{ Session::get('role_name') }}</p>
@@ -162,7 +162,7 @@
                     <div class="dropdown-menu">
                         <div class="user-header">
                             <div class="avatar avatar-sm">
-                                <img src="/images/{{ Session::get('avatar') }}" alt="{{ Session::get('name') }}" class="avatar-img rounded-circle">
+                                <img src="/images/{{ Session::get('avatar') }}" alt="" class="avatar-img rounded-circle">
                             </div>
                             <div class="user-text">
                                 <h6>{{ Session::get('name') }}</h6>
