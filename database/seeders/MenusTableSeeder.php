@@ -9,35 +9,27 @@ class MenusTableSeeder extends Seeder
 {
     public function run()
     {
+        // Insert the "Dashboard" menu
+        $dashboardMenuId = DB::table('menus')->insertGetId([
+            'title' => 'Dashboard',
+            'icon'  => 'fas fa-tachometer-alt',
+            'route' => null,
+            'active_routes' => json_encode(['home', 'teacher/dashboard', 'student/dashboard']),
+            'pattern'   => null,
+            'parent_id' => null,
+            'order'     => 1, // Adjust order as needed
+            'is_active' => true,
+        ]);
+
+        // Insert submenu items under "Dashboard"
         DB::table('menus')->insert([
-            // Main Menu
-            [
-                'title' => 'Main Menu',
-                'icon'  => null,
-                'route' => null,
-                'active_routes' => null,
-                'pattern'   => null,
-                'parent_id' => null,
-                'order'     => 1,
-                'is_active' => false,
-            ],
-            [
-                'title' => 'Dashboard',
-                'icon'  => 'fas fa-tachometer-alt',
-                'route' => null,
-                'active_routes' => json_encode(['home', 'teacher/dashboard', 'student/dashboard']),
-                'pattern'   => null,
-                'parent_id' => null,
-                'order'     => 3,
-                'is_active' => true,
-            ],
             [
                 'title' => 'Admin Dashboard',
                 'icon'  => null,
                 'route' => 'home',
                 'active_routes' => json_encode(['home']),
                 'pattern'   => null,
-                'parent_id' => 3,
+                'parent_id' => $dashboardMenuId,
                 'order'     => 1,
                 'is_active' => true,
             ],
@@ -47,7 +39,7 @@ class MenusTableSeeder extends Seeder
                 'route' => 'teacher/dashboard',
                 'active_routes' => json_encode(['teacher/dashboard']),
                 'pattern'   => null,
-                'parent_id' => 3,
+                'parent_id' => $dashboardMenuId,
                 'order'     => 2,
                 'is_active' => true,
             ],
@@ -57,27 +49,33 @@ class MenusTableSeeder extends Seeder
                 'route' => 'student/dashboard',
                 'active_routes' => json_encode(['student/dashboard']),
                 'pattern'   => null,
-                'parent_id' => 3,
+                'parent_id' => $dashboardMenuId,
                 'order'     => 3,
                 'is_active' => true,
             ],
-            [
-                'title' => 'User Management',
-                'icon'  => 'fas fa-shield-alt',
-                'route' => null,
-                'active_routes' => json_encode(['list/users']),
-                'pattern'   => null,
-                'parent_id' => null,
-                'order'     => 4,
-                'is_active' => true,
-            ],
+        ]);
+
+        // Insert the "User Management" menu
+        $userManagementMenuId = DB::table('menus')->insertGetId([
+            'title' => 'User Management',
+            'icon'  => 'fas fa-shield-alt',
+            'route' => null,
+            'active_routes' => json_encode(['list/users']),
+            'pattern'   => 'view/user/edit/*',
+            'parent_id' => null,
+            'order'     => 2, // Adjust order as needed
+            'is_active' => true,
+        ]);
+
+        // Insert submenu for "User Management"
+        DB::table('menus')->insert([
             [
                 'title' => 'List Users',
                 'icon'  => null,
                 'route' => 'list/users',
                 'active_routes' => json_encode(['list/users']),
                 'pattern'   => 'view/user/edit/*',
-                'parent_id' => 7,
+                'parent_id' => $userManagementMenuId,
                 'order'     => 1,
                 'is_active' => true,
             ],

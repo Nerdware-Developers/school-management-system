@@ -151,6 +151,9 @@
     <div class="sidebar-inner slimscroll">
         <div id="sidebar-menu" class="sidebar-menu">
             <ul>
+                <li class="menu-title">
+                    <span>Main Menu</span>
+                </li>
                 @foreach ($menus as $menu)
                     <li class="submenu {{ set_active($menu->active_routes) }} 
                         {{ (isset($menu->pattern) && request()->is($menu->pattern)) ? 'active' : '' }}">
