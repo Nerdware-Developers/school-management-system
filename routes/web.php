@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StudentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -99,7 +100,7 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('teacher/list/page', 'teacherList')->middleware('auth')->name('teacher/list/page'); // page teacher
         Route::get('teacher/grid/page', 'teacherGrid')->middleware('auth')->name('teacher/grid/page'); // page grid teacher
         Route::post('teacher/save', 'saveRecord')->middleware('auth')->name('teacher/save'); // save record
-        Route::get('teacher/edit/{user_id}', 'editRecord'); // view teacher record
+        Route::get('teacher/edit/{id}', 'editRecord'); // view teacher record
         Route::post('teacher/update', 'updateRecordTeacher')->middleware('auth')->name('teacher/update'); // update record
         Route::post('teacher/delete', 'teacherDelete')->name('teacher/delete'); // delete record teacher
     });
@@ -151,5 +152,6 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('account/fees/collections/page', 'index')->middleware('auth')->name('account/fees/collections/page'); // account/fees/collections/page
         Route::get('add/fees/collection/page', 'addFeesCollection')->middleware('auth')->name('add/fees/collection/page'); // add/fees/collection
         Route::post('fees/collection/save', 'saveRecord')->middleware('auth')->name('fees/collection/save'); // fees/collection/save
+        Route::get('/student/search', [StudentController::class, 'search'])->name('student.search');
     });
 });

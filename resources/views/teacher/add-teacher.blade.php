@@ -29,13 +29,9 @@
                                 </div>
                                 <div class="col-12 col-sm-4">
                                     <div class="form-group local-forms">
-                                        <label>Full Name<span class="login-danger">*</span></label>
-                                        <select class="select select2s-hidden-accessible @error('full_name') is-invalid @enderror" style="width: 100%;" tabindex="-1" aria-hidden="true" id="full_name" name="full_name">
-                                            <option selected disabled>-- Select Name --</option>
-                                            @foreach($users as $key => $names)
-                                                <option value="{{ $names->name }}"data-teacher_id={{ $names->user_id }} {{ old('full_name') == $names->name ? "selected" :""}}>{{ $names->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <label>Full Name <span class="login-danger">*</span></label>
+                                        <input type="text" class="form-control @error('full_name') is-invalid @enderror" 
+                                            name="full_name" value="{{ old('full_name') }}" placeholder="Enter full name">
                                         @error('full_name')
                                             <span class="invalid-feedback" role="alert">
                                                 <strong>{{ $message }}</strong>
@@ -46,7 +42,13 @@
                                 <div class="col-12 col-sm-4">
                                     <div class="form-group local-forms">
                                         <label>Teacher ID <span class="login-danger">*</span></label>
-                                        <input type="text" class="form-control" name="teacher_id" id="teacher_id" placeholder="Teacher ID" value="{{ old('teacher_id') }}" readonly>
+                                        <input type="text" class="form-control @error('teacher_id') is-invalid @enderror"
+                                            name="teacher_id" value="{{ old('teacher_id', 'TCH-' . rand(1000,9999)) }}" placeholder="Enter teacher ID">
+                                        @error('teacher_id')
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-4">

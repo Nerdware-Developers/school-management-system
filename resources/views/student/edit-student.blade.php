@@ -192,6 +192,61 @@
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Mother's Name <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('parent_name') is-invalid @enderror" name="parent_name" value="{{ $studentEdit->parent_name }}">
+                                            @error('parent_name')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Father's Name <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('father_name') is-invalid @enderror" name="father_name" value="{{ $studentEdit->father_name }}">
+                                            @error('father_name')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Guardian's Name <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('guardian_name') is-invalid @enderror" name="guardian_name" value="{{ $studentEdit->guardian_name }}">
+                                            @error('guardian_name')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Guardian_phone <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('guardian_phone') is-invalid @enderror" name="guardian_phone" value="{{ $studentEdit->guardian_phone }}">
+                                            @error('guardian_phone')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Address <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('address') is-invalid @enderror" name="address" value="{{ $studentEdit->address }}">
+                                            @error('address')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
                                         <div class="form-group students-up-files">
                                             <label>Upload Student Photo (150px X 150px)</label>
                                             <div class="uplod">

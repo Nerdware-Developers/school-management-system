@@ -181,7 +181,7 @@
 		{{-- content page --}}
         @yield('content')
         <footer>
-            <p>Copyright ©  <?php echo date('Y'); ?> Soeng Souy.</p>
+            <p>Copyright ©  <?php echo date('Y'); ?> Nerdware Developers.</p>
         </footer>
     
     </div>

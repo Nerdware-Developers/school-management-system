@@ -30,12 +30,7 @@
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Student Name <span class="login-danger">*</span></label>
-                                            <select class="select select2s-hidden-accessible" style="width: 100%;" tabindex="-1" aria-hidden="true" id="student_name" name="student_name">
-                                                <option selected disabled>-- Select --</option>
-                                                @foreach($users as $key => $names)
-                                                    <option value="{{ $names->name }}"data-student_id={{ $names->user_id }} {{ old('full_name') == $names->name ? "selected" :""}}>{{ $names->name }}</option>
-                                                @endforeach
-                                            </select>
+                                            <select id="student_name" name="student_name" style="width: 100%;"></select>
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-4">
@@ -92,13 +87,37 @@
         </div>
     </div>
     @section('script')
-    <script>
-        // select auto id and email
-        $('#student_name').on('change',function()
-        {
-            $('#student_id').val($(this).find(':selected').data('student_id'));
-        });
-    </script>
-    @endsection
+<script>
+$(document).ready(function() {
+    $('#student_name').select2({
+        placeholder: '-- Search Student --',
+        ajax: {
+            url: '{{ route("student.search") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { term: params.term };
+            },
+            processResults: function (data) {
+                return { results: data };
+            },
+            cache: true
+        }
+    });
 
+    // When a student is selected
+    $('#student_name').on('select2:select', function (e) {
+        var data = e.params.data;
+        $('#student_id').val(data.id);
+        // store the full name (for Laravel)
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'student_name',
+            value: data.full_name
+        }).appendTo('form');
+    });
+});
+</script>
 @endsection
+
+

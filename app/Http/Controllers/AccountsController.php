@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\FeesType;
 use App\Models\User;
 use App\Models\FeesInformation;
 use Brian2694\Toastr\Facades\Toastr;
+use App\Models\Student; 
 
 class AccountsController extends Controller
 {
@@ -22,9 +24,9 @@ class AccountsController extends Controller
     /** add Fees Collection */
     public function addFeesCollection()
     {
-        $users    = User::whereIn('role_name',['Student'])->get();
+        $students = Student::select('id', 'first_name', 'last_name', 'class')->get();
         $feesType = FeesType::all();
-        return view('accounts.add-fees-collection',compact('users','feesType'));
+        return view('accounts.add-fees-collection', compact('students', 'feesType'));
     }
 
     /** save record */
@@ -58,5 +60,20 @@ class AccountsController extends Controller
             Toastr::error('fail, Add new record  :)','Error');
             return redirect()->back();
         }
+    }
+    public function search(Request $request)
+    {
+        $term = $request->get('term');
+
+        $students = Student::where(function ($query) use ($term) {
+                $query->where('first_name', 'LIKE', "%{$term}%")
+                    ->orWhere('last_name', 'LIKE', "%{$term}%");
+            })
+            ->select('id', DB::raw('CONCAT(first_name, " ", last_name, " (Class ", class, ")") as text'))
+            ->orderBy('first_name', 'asc')
+            ->limit(10)
+            ->get();
+
+        return response()->json($students);
     }
 }

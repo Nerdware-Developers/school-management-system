@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\Department;
+
 
 class HomeController extends Controller
 {
@@ -23,9 +27,55 @@ class HomeController extends Controller
     */
     /** home dashboard */
     public function index()
-    {
-        return view('dashboard.home');
+{
+    // Counts
+    $totalStudents = Student::count();
+    $totalTeachers = Teacher::count();
+    $totalDepartments = Department::count();
+
+    // Get students grouped by gender
+    $studentsByGender = Student::selectRaw('gender, COUNT(*) as total')
+        ->groupBy('gender')
+        ->pluck('total', 'gender');
+
+    // Get teacher monthly stats
+    $studentMonthly = Student::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        ->groupBy('month')
+        ->pluck('total', 'month')
+        ->toArray();
+
+    $teacherMonthly = Teacher::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        ->groupBy('month')
+        ->pluck('total', 'month')
+        ->toArray();
+
+    // Fill 12 months with zeros if no data
+    $months = range(1, 12);
+    $studentData = [];
+    $teacherData = [];
+
+    foreach ($months as $m) {
+        $studentData[] = $studentMonthly[$m] ?? 0;
+        $teacherData[] = $teacherMonthly[$m] ?? 0;
     }
+
+    // Extract gender counts safely
+    $boys = $studentsByGender['Male'] ?? 0;
+    $girls = $studentsByGender['Female'] ?? 0;
+
+    // Pass everything to view
+    return view('dashboard.home', compact(
+        'totalStudents',
+        'totalTeachers',
+        'totalDepartments',
+        'boys',
+        'girls',
+        'studentData',
+        'teacherData'
+    ));
+}
+
+
 
     /** profile user */
     public function userProfile()
