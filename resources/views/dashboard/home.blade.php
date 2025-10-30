@@ -26,7 +26,7 @@
                         <div class="db-widgets d-flex justify-content-between align-items-center">
                             <div class="db-info">
                                 <h6>Students</h6>
-                                <h3>50055</h3>
+                                <h3>{{ $totalStudents }}</h3>
                             </div>
                             <div class="db-icon">
                                 <img src="{{ URL::to('assets/img/icons/dash-icon-01.svg') }}" alt="Dashboard Icon">
@@ -40,8 +40,8 @@
                     <div class="card-body">
                         <div class="db-widgets d-flex justify-content-between align-items-center">
                             <div class="db-info">
-                                <h6>Awards</h6>
-                                <h3>50+</h3>
+                                <h6>Teachers</h6>
+                                <h3>{{ $totalTeachers }}</h3>
                             </div>
                             <div class="db-icon">
                                 <img src="{{ URL::to('assets/img/icons/dash-icon-02.svg') }}" alt="Dashboard Icon">
@@ -56,7 +56,7 @@
                         <div class="db-widgets d-flex justify-content-between align-items-center">
                             <div class="db-info">
                                 <h6>Department</h6>
-                                <h3>30+</h3>
+                                <h3>{{ $totalDepartments }}</h3>
                             </div>
                             <div class="db-icon">
                                 <img src="{{ URL::to('assets/img/icons/dash-icon-03.svg') }}" alt="Dashboard Icon">
@@ -354,4 +354,10 @@
         </div>
     </div>
 </div>
+@section('scripts')
+<script src="{{ asset('assets/plugins/apexchart/apexcharts.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/apexchart/chart-data.js') }}"></script>
+
+
+
 @endsection

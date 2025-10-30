@@ -150,7 +150,7 @@
                                             </div>
                                             <div class="views-personal">
                                                 <h4>Address</h4>
-                                                <h5>480, Estern Avenue, New York</h5>
+                                                <h5>{{ $studentProfile->address }}</h5>
                                             </div>
                                         </div>
                                     </div>
@@ -203,7 +203,7 @@
                                             <h4>About Me</h4>
                                         </div>
                                         <div class="hello-park">
-                                            <h5>Hello I am Daisy Parks</h5>
+                                            <h5>Hello I am {{ $studentProfile->first_name }} {{ $studentProfile->last_name }}</h5>
                                             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
                                                 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
                                                 ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut

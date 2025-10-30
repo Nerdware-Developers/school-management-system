@@ -105,9 +105,9 @@
                                             </td>
                                             <td>{{ $list->class }} {{ $list->section }}</td>
                                             <td>{{ $list->date_of_birth }}</td>
-                                            <td>Soeng Soeng</td>
+                                            <td>{{ $list->parent_name }}</td>
                                             <td>{{ $list->phone_number }}</td>
-                                            <td>110 Sen Sok Steet,PP</td>
+                                            <td>{{$list->address}}</td>
                                             <td class="text-end">
                                                 <div class="actions">
                                                     <a href="{{ url('student/edit/'.$list->id) }}" class="btn btn-sm bg-danger-light">

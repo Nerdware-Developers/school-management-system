@@ -21,11 +21,14 @@ class TeacherController extends Controller
 
     /** teacher list */
     public function teacherList()
-    {
-        $listTeacher = Teacher::join('users', 'teachers.user_id','users.user_id')
-                    ->select('users.date_of_birth','users.join_date','users.phone_number','teachers.*')->get();
-        return view('teacher.list-teachers',compact('listTeacher'));
-    }
+{
+    $listTeacher = Teacher::all();
+    return view('teacher.list-teachers', compact('listTeacher'));
+}
+
+
+
+
 
     /** teacher Grid */
     public function teacherGrid()
@@ -52,40 +55,46 @@ class TeacherController extends Controller
         ]);
 
         try {
+            $teacher = new Teacher;
+            $teacher->full_name     = $request->full_name;
+            $teacher->gender        = $request->gender;
+            $teacher->experience    = $request->experience;
+            $teacher->qualification = $request->qualification;
+            $teacher->date_of_birth = $request->date_of_birth;
+            $teacher->phone_number  = $request->phone_number;
+            $teacher->address       = $request->address;
+            $teacher->city          = $request->city;
+            $teacher->state         = $request->state;
+            $teacher->zip_code      = $request->zip_code;
+            $teacher->country       = $request->country;
 
-            $saveRecord = new Teacher;
-            $saveRecord->full_name     = $request->full_name;
-            $saveRecord->user_id       = $request->teacher_id;
-            $saveRecord->gender        = $request->gender;
-            $saveRecord->experience    = $request->experience;
-            $saveRecord->qualification = $request->qualification;
-            $saveRecord->date_of_birth = $request->date_of_birth;
-            $saveRecord->phone_number  = $request->phone_number;
-            $saveRecord->address       = $request->address;
-            $saveRecord->city          = $request->city;
-            $saveRecord->state         = $request->state;
-            $saveRecord->zip_code      = $request->zip_code;
-            $saveRecord->country       = $request->country;
-            $saveRecord->save();
-   
-            Toastr::success('Has been add successfully :)','Success');
-            return redirect()->back();
-        } catch(\Exception $e) {
-            \Log::info($e);
-            DB::rollback();
-            Toastr::error('fail, Add new record  :)','Error');
+            // optional: generate a teacher_id automatically if you need it
+            $teacher->user_id = 'T' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+
+            $teacher->save();
+
+            Toastr::success('Teacher has been added successfully :)', 'Success');
+            return redirect()->route('teacher/list/page');
+        } catch (\Exception $e) {
+            \Log::error($e);
+            Toastr::error('Failed to add teacher :)', 'Error');
             return redirect()->back();
         }
     }
 
+
     /** edit record */
-    public function editRecord($user_id)
-    {
-        $teacher = Teacher::join('users', 'teachers.user_id','users.user_id')
-                    ->select('users.date_of_birth','users.join_date','users.phone_number','teachers.*')
-                    ->where('users.user_id', $user_id)->first();
-        return view('teacher.edit-teacher',compact('teacher'));
+    public function editRecord($id)
+{
+    $teacher = Teacher::find($id);
+
+    if (!$teacher) {
+        abort(404, 'Teacher not found');
     }
+
+    return view('teacher.edit-teacher', compact('teacher'));
+}
+
 
     /** update record teacher */
     public function updateRecordTeacher(Request $request)
@@ -137,4 +146,5 @@ class TeacherController extends Controller
             return redirect()->back();
         }
     }
+
 }

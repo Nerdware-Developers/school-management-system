@@ -140,10 +140,10 @@
                                         <div class="form-group local-forms">
                                             <label>Class <span class="login-danger">*</span></label>
                                             <select class="form-control select @error('class') is-invalid @enderror" name="class">
-                                                <option selected disabled>Please Select Class </option>
-                                                <option value="12" {{ old('class') == '12' ? "selected" :""}}>12</option>
-                                                <option value="11" {{ old('class') == '11' ? "selected" :""}}>11</option>
-                                                <option value="10" {{ old('class') == '10' ? "selected" :""}}>10</option>
+                                                <option selected disabled>Please Select Class</option>
+                                                @for ($i = 1; $i <= 9; $i++)
+                                                    <option value="Grade {{ $i }}" {{ old('class') == "Grade $i" ? 'selected' : '' }}>Grade {{ $i }}</option>
+                                                @endfor
                                             </select>
                                             @error('class')
                                                 <span class="invalid-feedback" role="alert">
@@ -152,14 +152,15 @@
                                             @enderror
                                         </div>
                                     </div>
+
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Section <span class="login-danger">*</span></label>
                                             <select class="form-control select @error('section') is-invalid @enderror" name="section">
-                                                <option selected disabled>Please Select Section </option>
-                                                <option value="A" {{ old('section') == 'A' ? "selected" :""}}>A</option>
-                                                <option value="B" {{ old('section') == 'B' ? "selected" :""}}>B</option>
-                                                <option value="C" {{ old('section') == 'C' ? "selected" :""}}>C</option>
+                                                <option selected disabled>Please Select Section</option>
+                                                <option value="A" {{ old('section') == 'A' ? 'selected' : '' }}>A</option>
+                                                <option value="B" {{ old('section') == 'B' ? 'selected' : '' }}>B</option>
+                                                <option value="C" {{ old('section') == 'C' ? 'selected' : '' }}>C</option>
                                             </select>
                                             @error('section')
                                                 <span class="invalid-feedback" role="alert">
@@ -168,6 +169,7 @@
                                             @enderror
                                         </div>
                                     </div>
+
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Admission ID </label>
@@ -181,6 +183,12 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
+                                            <label>Mother's Name <span class="login-danger">*</span></label>
+                                            <input class="form-control" type="text" name="parent_name" placeholder="Enter Mother's name">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
                                             <label>Phone </label>
                                             <input class="form-control @error('phone_number') is-invalid @enderror" type="text" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');" name="phone_number" placeholder="Enter Phone Number" value="{{ old('phone_number') }}">
                                             @error('phone_number')
@@ -188,6 +196,30 @@
                                                     <strong>{{ $message }}</strong>
                                                 </span>
                                             @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Father's Name <span class="login-danger">*</span></label>
+                                            <input class="form-control" type="text" name="father_name" placeholder="Enter Father's name">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Guardian's Name <span class="login-danger">*</span></label>
+                                            <input class="form-control" type="text" name="guardian_name" placeholder="Enter Guardian's name">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Guardian Number <span class="login-danger">*</span></label>
+                                            <input class="form-control" type="text" name="guardian_phone" placeholder="Enter address">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <div class="form-group local-forms">
+                                            <label>Address <span class="login-danger">*</span></label>
+                                            <input class="form-control" type="text" name="address" placeholder="Enter Address">
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-4">
