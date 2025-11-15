@@ -8,6 +8,8 @@ use Hash;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Teacher;
+use App\Models\Classe;
+use App\Models\Subject;
 use Brian2694\Toastr\Facades\Toastr;
 
 class TeacherController extends Controller
@@ -16,7 +18,9 @@ class TeacherController extends Controller
     public function teacherAdd()
     {
         $users = User::where('role_name','Teachers')->get();
-        return view('teacher.add-teacher',compact('users'));
+        $classes = Classe::all();
+        $subjects = Subject::all();
+        return view('teacher.add-teacher',compact('users', 'classes', 'subjects'));
     }
 
     /** teacher list */
@@ -52,6 +56,11 @@ class TeacherController extends Controller
             'state'         => 'required|string',
             'zip_code'      => 'required|string',
             'country'       => 'required|string',
+            'is_class_teacher' => 'nullable|in:yes,no',
+            'class_teacher_id' => 'required_if:is_class_teacher,yes|nullable|exists:classes,id',
+            'subject_class' => 'nullable|array',
+            'subject_class.*.subject_id' => 'required_with:subject_class|exists:subjects,id',
+            'subject_class.*.class_id' => 'required_with:subject_class|exists:classes,id',
         ]);
 
         try {
@@ -67,11 +76,27 @@ class TeacherController extends Controller
             $teacher->state         = $request->state;
             $teacher->zip_code      = $request->zip_code;
             $teacher->country       = $request->country;
+            
+            // Set class teacher if provided
+            if ($request->is_class_teacher == 'yes' && $request->class_teacher_id) {
+                $teacher->class_teacher_id = $request->class_teacher_id;
+            }
 
             // optional: generate a teacher_id automatically if you need it
             $teacher->user_id = 'T' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
             $teacher->save();
+
+            // Save subject-class assignments
+            if ($request->has('subject_class') && is_array($request->subject_class)) {
+                foreach ($request->subject_class as $assignment) {
+                    if (!empty($assignment['subject_id']) && !empty($assignment['class_id'])) {
+                        $teacher->subjectClasses()->attach($assignment['class_id'], [
+                            'subject_id' => $assignment['subject_id']
+                        ]);
+                    }
+                }
+            }
 
             Toastr::success('Teacher has been added successfully :)', 'Success');
             return redirect()->route('teacher/list/page');

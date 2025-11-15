@@ -97,12 +97,7 @@
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Blood Group <span class="login-danger">*</span></label>
-                                            <select class="form-control select @error('blood_group') is-invalid @enderror" name="blood_group">
-                                                <option selected disabled>Please Select Group </option>
-                                                <option value="A+" {{ $studentEdit->blood_group == 'A+' ? "selected" :""}}>A+</option>
-                                                <option value="B+" {{ $studentEdit->blood_group == 'B+' ? "selected" :""}}>B+</option>
-                                                <option value="O+" {{ $studentEdit->blood_group == 'O+' ? "selected" :""}}>O+</option>
-                                            </select>
+                                            <input class="form-control @error('blood_group') is-invalid @enderror" type="text" name="blood_group" value="{{ $studentEdit->blood_group }}">
                                             @error('blood_group')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
@@ -112,25 +107,9 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Religion <span class="login-danger">*</span></label>
-                                            <select class="form-control select @error('religion') is-invalid @enderror" name="religion">
-                                                <option selected disabled>Please Select Religion </option>
-                                                <option value="Hindu" {{ $studentEdit->religion == 'Hindu' ? "selected" :""}}>Hindu</option>
-                                                <option value="Christian" {{ $studentEdit->religion == 'Christian' ? "selected" :""}}>Christian</option>
-                                                <option value="Others" {{ $studentEdit->religion == 'Others' ? "selected" :""}}>Others</option>
-                                            </select>
-                                            @error('religion')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
                                             <label>E-Mail <span class="login-danger">*</span></label>
-                                            <input class="form-control @error('email') is-invalid @enderror" type="text" name="email"  value="{{ $studentEdit->email }}">
-                                            @error('email')
+                                            <input class="form-control @error('parent_email') is-invalid @enderror" type="text" name="parent_email"  value="{{ $studentEdit->parent_email }}">
+                                            @error('parent_email')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -140,12 +119,7 @@
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Class <span class="login-danger">*</span></label>
-                                            <select class="form-control select @error('class') is-invalid @enderror" name="class">
-                                                <option selected disabled>Please Select Class </option>
-                                                <option value="12" {{ $studentEdit->class == '12' ? "selected" :""}}>12</option>
-                                                <option value="11" {{ $studentEdit->class == '11' ? "selected" :""}}>11</option>
-                                                <option value="10" {{ $studentEdit->class == '10' ? "selected" :""}}>10</option>
-                                            </select>
+                                            <input class="form-control @error('class') is-invalid @enderror" type="text" name="class"  value="{{ $studentEdit->class }}">
                                             @error('class')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
@@ -155,25 +129,9 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Section <span class="login-danger">*</span></label>
-                                            <select class="form-control select @error('section') is-invalid @enderror" name="section">
-                                                <option selected disabled>Please Select Section </option>
-                                                <option value="A" {{ $studentEdit->section == 'A' ? "selected" :""}}>A</option>
-                                                <option value="B" {{ $studentEdit->section == 'B' ? "selected" :""}}>B</option>
-                                                <option value="C" {{ $studentEdit->section == 'C' ? "selected" :""}}>C</option>
-                                            </select>
-                                            @error('section')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
                                             <label>Admission ID </label>
-                                            <input class="form-control @error('admission_id') is-invalid @enderror" type="text" name="admission_id" value="{{ $studentEdit->admission_id }}">
-                                            @error('admission_id')
+                                            <input class="form-control @error('admission_number') is-invalid @enderror" type="text" name="admission_number" value="{{ $studentEdit->admission_number }}">
+                                            @error('admission_number')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -183,8 +141,8 @@
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
                                             <label>Phone </label>
-                                            <input class="form-control @error('phone_number') is-invalid @enderror" type="text" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');" name="phone_number" value="{{ $studentEdit->phone_number }}">
-                                            @error('phone_number')
+                                            <input class="form-control @error('parent_number') is-invalid @enderror" type="text" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');" name="parent_number" value="{{ $studentEdit->parent_number }}">
+                                            @error('parent_number')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -193,20 +151,9 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Mother's Name <span class="login-danger">*</span></label>
+                                            <label>Parent's Name <span class="login-danger">*</span></label>
                                             <input type="text" class="form-control @error('parent_name') is-invalid @enderror" name="parent_name" value="{{ $studentEdit->parent_name }}">
                                             @error('parent_name')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Father's Name <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control @error('father_name') is-invalid @enderror" name="father_name" value="{{ $studentEdit->father_name }}">
-                                            @error('father_name')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -226,9 +173,9 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Guardian_phone <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control @error('guardian_phone') is-invalid @enderror" name="guardian_phone" value="{{ $studentEdit->guardian_phone }}">
-                                            @error('guardian_phone')
+                                            <label>Guardian Number <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control @error('guardian_number') is-invalid @enderror" name="guardian_number" value="{{ $studentEdit->guardian_number }}">
+                                            @error('guardian_number')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -252,14 +199,14 @@
                                             <div class="uplod">
                                                 <h2 class="table-avatar">
                                                     <a class="avatar avatar-sm me-2">
-                                                        <img class="avatar-img rounded-circle" src="{{ Storage::url('student-photos/'.$studentEdit->upload) }}" alt="">
+                                                        <img class="avatar-img rounded-circle" src="{{ Storage::url('student-photos/'.$studentEdit->image) }}" alt="">
                                                     </a>
                                                 </h2>
-                                                <label class="file-upload image-upbtn mb-0 @error('upload') is-invalid @enderror">
-                                                    Choose File <input type="file" name="upload">
+                                                <label class="file-upload image-upbtn mb-0 @error('image') is-invalid @enderror">
+                                                    Choose File <input type="file" name="image">
                                                 </label>
-                                                <input type="hidden" name="image_hidden" value="{{ $studentEdit->upload }}">
-                                                @error('upload')
+                                                <input type="hidden" name="image_hidden" value="{{ $studentEdit->image }}">
+                                                @error('image')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>
                                                     </span>

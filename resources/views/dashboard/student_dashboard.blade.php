@@ -1,382 +1,163 @@
-
 @extends('layouts.master')
 @section('content')
-    {{-- message --}}
-    {!! Toastr::message() !!}
-    <div class="page-wrapper">
-        <div class="content container-fluid">
-            <div class="page-header">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <div class="page-sub-header">
-                            <h3 class="page-title">Welcome Bruklin!</h3>
-                            <ul class="breadcrumb">
-                                <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
-                                <li class="breadcrumb-item active">Student</li>
-                            </ul>
+
+<div class="page-wrapper">
+    <div class="content container-fluid">
+
+        <!-- Page Title -->
+        <div class="page-header mb-4">
+            <h3 class="page-title fw-bold">Students</h3>
+            <div class="search-bar position-relative w-50">
+                <input type="text" class="form-control rounded-pill ps-4" placeholder="Search for students/teachers/documents...">
+                <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y pe-3 text-muted"></i>
+            </div>
+        </div>
+
+        <div class="row">
+
+            <!-- Left Panel: Student List -->
+            <div class="col-md-4 col-lg-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3">Students</h5>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search name or ID">
                         </div>
+                        <ul class="list-group list-group-flush student-list">
+                            @foreach ([
+                                ['name'=>'Amara Olson','class'=>'Class VI','id'=>'E-8547','year'=>'2019'],
+                                ['name'=>'Julie Von','class'=>'Class V','id'=>'D-4512','year'=>'2020'],
+                                ['name'=>'Jocelyn Walker','class'=>'Class VI','id'=>'C-9514','year'=>'2016'],
+                                ['name'=>'Trisha Berge','class'=>'Class VI','id'=>'F-6522','year'=>'2018'],
+                                ['name'=>'Morris Mayert','class'=>'Class VI','id'=>'H-2787','year'=>'2016'],
+                            ] as $s)
+                            <li class="list-group-item d-flex align-items-center border-0 rounded-3 mb-2 {{ $s['name']=='Trisha Berge' ? 'bg-primary text-white' : 'bg-light' }}">
+                                <img src="https://randomuser.me/api/portraits/women/{{ rand(1,80) }}.jpg" class="rounded-circle me-3" width="40" height="40" alt="student">
+                                <div>
+                                    <div class="fw-semibold">{{ $s['name'] }}</div>
+                                    <small>{{ $s['class'] }}</small>
+                                </div>
+                                <div class="ms-auto text-end small">
+                                    <div class="fw-bold">{{ $s['id'] }}</div>
+                                    <span>{{ $s['year'] }}</span>
+                                </div>
+                            </li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                    <div class="card bg-comman w-100">
-                        <div class="card-body">
-                            <div class="db-widgets d-flex justify-content-between align-items-center">
-                                <div class="db-info">
-                                    <h6>All Courses</h6>
-                                    <h3>04/06</h3>
-                                </div>
-                                <div class="db-icon">
-                                    <img src="{{ URL::to('assets/img/icons/teacher-icon-01.svg') }}" alt="Dashboard Icon">
-                                </div>
+            <!-- Right Panel: Profile & Chart -->
+            <div class="col-md-8 col-lg-9">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body bg-primary text-white rounded-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" class="rounded-circle me-3" width="80" height="80" alt="student">
+                            <div>
+                                <h4 class="mb-0">Trisha Berge</h4>
+                                <div>Class VI | Student ID: F-6522</div>
                             </div>
+                        </div>
+                        <div class="rounded-circle bg-light text-primary d-flex align-items-center justify-content-center" style="width:70px;height:70px;">
+                            <i class="fas fa-graduation-cap fs-3"></i>
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                    <div class="card bg-comman w-100">
-                        <div class="card-body">
-                            <div class="db-widgets d-flex justify-content-between align-items-center">
-                                <div class="db-info">
-                                    <h6>All Projects</h6>
-                                    <h3>40/60</h3>
-                                </div>
-                                <div class="db-icon">
-                                    <img src="{{URL::to('assets/img/icons/teacher-icon-02.svg')}}" alt="Dashboard Icon">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                    <div class="card bg-comman w-100">
-                        <div class="card-body">
-                            <div class="db-widgets d-flex justify-content-between align-items-center">
-                                <div class="db-info">
-                                    <h6>Test Attended</h6>
-                                    <h3>30/50</h3>
-                                </div>
-                                <div class="db-icon">
-                                    <img src="{{URL::to('assets/img/icons/student-icon-01.svg')}}" alt="Dashboard Icon">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                    <div class="card bg-comman w-100">
-                        <div class="card-body">
-                            <div class="db-widgets d-flex justify-content-between align-items-center">
-                                <div class="db-info">
-                                    <h6>Test Passed</h6>
-                                    <h3>15/20</h3>
-                                </div>
-                                <div class="db-icon">
-                                    <img src="{{URL::to('assets/img/icons/student-icon-02.svg')}}" alt="Dashboard Icon">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-12 col-lg-12 col-xl-8">
-                    <div class="card flex-fill comman-shadow">
-                        <div class="card-header">
-                            <div class="row align-items-center">
-                                <div class="col-6">
-                                    <h5 class="card-title">Today’s Lesson</h5>
-                                </div>
-                                <div class="col-6">
-                                    <ul class="chart-list-out">
-                                        <li>
-                                            <span class="circle-blue"></span>
-                                            <span class="circle-gray"></span>
-                                            <span class="circle-gray"></span>
-                                        </li>
-                                        <li class="lesson-view-all"><a href="#">View All</a></li>
-                                        <li class="star-menus"><a href="javascript:;"><i class="fas fa-ellipsis-v"></i></a></li>
-                                    </ul>
-                                </div>
+                <!-- Student Basic Details -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3">Basic Details</h5>
+                        <div class="row g-3">
+                            <div class="col-sm-6 col-lg-3">
+                                <small class="text-muted">Gender</small>
+                                <div class="fw-semibold">Female</div>
                             </div>
-                        </div>
-                        <div class="dash-circle">
-                            <div class="row">
-                                <div class="col-lg-3 col-md-3 dash-widget1">
-                                    <div class="circle-bar circle-bar2">
-                                        <div class="circle-graph2" data-percent="80">
-                                            <b>80%</b>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3">
-                                    <div class="dash-details">
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-01.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Class</h5>
-                                                <h4>Electrical Engg</h4>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-02.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Lessons</h5>
-                                                <h4>5 Lessons</h4>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-03.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Time</h5>
-                                                <h4>Lessons</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3">
-                                    <div class="dash-details">
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-04.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Asignment</h5>
-                                                <h4>5 Asignment</h4>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-05.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Staff</h5>
-                                                <h4>John Doe</h4>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-activity">
-                                            <div class="lesson-imgs">
-                                                <img src="{{URL::to('assets/img/icons/lesson-icon-06.svg')}}" alt="">
-                                            </div>
-                                            <div class="views-lesson">
-                                                <h5>Lesson Learned</h5>
-                                                <h4>10/50</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 d-flex align-items-center justify-content-center">
-                                    <div class="skip-group">
-                                        <button type="submit" class="btn btn-info skip-btn">skip</button>
-                                        <button type="submit" class="btn btn-info continue-btn">Continue</button>
-                                    </div>
-                                </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <small class="text-muted">Date of Birth</small>
+                                <div class="fw-semibold">29-04-2004</div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 col-lg-12 col-xl-12 d-flex">
-                            <div class="card flex-fill comman-shadow">
-                                <div class="card-header">
-                                    <div class="row align-items-center">
-                                        <div class="col-6">
-                                            <h5 class="card-title">Learning Activity</h5>
-                                        </div>
-                                        <div class="col-6">
-                                            <ul class="chart-list-out">
-                                                <li><span class="circle-blue"></span>Teacher</li>
-                                                <li><span class="circle-green"></span>Student</li>
-                                                <li class="star-menus"><a href="javascript:;"><i
-                                                            class="fas fa-ellipsis-v"></i></a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div id="apexcharts-area"></div>
-                                </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <small class="text-muted">Religion</small>
+                                <div class="fw-semibold">Christian</div>
                             </div>
-                        </div>
-                        <div class="col-12 col-lg-12 col-xl-12 d-flex">
-                            <div class="card flex-fill comman-shadow">
-                                <div class="card-header d-flex align-items-center">
-                                    <h5 class="card-title">Teaching History</h5>
-                                    <ul class="chart-list-out student-ellips">
-                                        <li class="star-menus"><a href="javascript:;"><i
-                                                    class="fas fa-ellipsis-v"></i></a></li>
-                                    </ul>
-                                </div>
-                                <div class="card-body">
-                                    <div class="teaching-card">
-                                        <ul class="steps-history">
-                                            <li>Sep22</li>
-                                            <li>Sep23</li>
-                                            <li>Sep24</li>
-                                        </ul>
-                                        <ul class="activity-feed">
-                                            <li class="feed-item d-flex align-items-center">
-                                                <div class="dolor-activity">
-                                                    <span class="feed-text1"><a>Mathematics</a></span>
-                                                    <ul class="teacher-date-list">
-                                                        <li><i class="fas fa-calendar-alt me-2"></i>September 5,
-                                                            2022</li>
-                                                        <li>|</li>
-                                                        <li><i class="fas fa-clock me-2"></i>09:00 am - 10:00 am (60
-                                                            Minutes)</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="activity-btns ms-auto">
-                                                    <button type="submit" class="btn btn-info">In Progress</button>
-                                                </div>
-                                            </li>
-                                            <li class="feed-item d-flex align-items-center">
-                                                <div class="dolor-activity">
-                                                    <span class="feed-text1"><a>Geography </a></span>
-                                                    <ul class="teacher-date-list">
-                                                        <li><i class="fas fa-calendar-alt me-2"></i>September 5,
-                                                            2022</li>
-                                                        <li>|</li>
-                                                        <li><i class="fas fa-clock me-2"></i>09:00 am - 10:00 am (60
-                                                            Minutes)</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="activity-btns complete ms-auto">
-                                                    <button type="submit" class="btn btn-info">Completed</button>
-                                                </div>
-                                            </li>
-                                            <li class="feed-item d-flex align-items-center">
-                                                <div class="dolor-activity">
-                                                    <span class="feed-text1"><a>Botony</a></span>
-                                                    <ul class="teacher-date-list">
-                                                        <li><i class="fas fa-calendar-alt me-2"></i>September 5,
-                                                            2022</li>
-                                                        <li>|</li>
-                                                        <li><i class="fas fa-clock me-2"></i>09:00 am - 10:00 am (60
-                                                            Minutes)</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="activity-btns ms-auto">
-                                                    <button type="submit" class="btn btn-info">In Progress</button>
-                                                </div>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <small class="text-muted">Blood Group</small>
+                                <div class="fw-semibold">B+</div>
+                            </div>
+                            <div class="col-lg-6">
+                                <small class="text-muted">Address</small>
+                                <div class="fw-semibold">1962 Harrison Street, San Francisco, CA 94103</div>
+                            </div>
+                            <div class="col-lg-3">
+                                <small class="text-muted">Father</small>
+                                <div class="fw-semibold">Richard Berge<br><small class="text-muted">+1 603-965-4668</small></div>
+                            </div>
+                            <div class="col-lg-3">
+                                <small class="text-muted">Mother</small>
+                                <div class="fw-semibold">Maren Berge<br><small class="text-muted">+1 660-657-7027</small></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-12 col-xl-4 d-flex">
-                    <div class="card flex-fill comman-shadow">
-                        <div class="card-body">
-                            <div id="calendar-doctor" class="calendar-container"></div>
-                            <div class="calendar-info calendar-info1">
-                                <div class="up-come-header">
-                                    <h2>Upcoming Events</h2>
-                                    <span><a href="javascript:;"><i class="feather-plus"></i></a></span>
-                                </div>
-                                <div class="upcome-event-date">
-                                    <h3>10 Jan</h3>
-                                    <span><i class="fas fa-ellipsis-h"></i></span>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>08:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>Botony</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>08:00 - 09:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>09:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>Botony</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>09:00 - 10:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>10:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>Botony</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>10:00 - 11:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="upcome-event-date">
-                                    <h3>10 Jan</h3>
-                                    <span><i class="fas fa-ellipsis-h"></i></span>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>08:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>English</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>08:00 - 09:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>09:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>Mathematics </h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>09:00 - 10:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>10:00 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>History</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>10:00 - 11:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>11:00 am</p>
-                                    <div class="calendar-box break-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>Break</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>11:00 - 12:00 am</span>
-                                    </div>
-                                </div>
-                                <div class="calendar-details">
-                                    <p>11:30 am</p>
-                                    <div class="calendar-box normal-bg">
-                                        <div class="calandar-event-name">
-                                            <h4>History</h4>
-                                            <h5>Lorem ipsum sit amet</h5>
-                                        </div>
-                                        <span>11:30 - 12:00 am</span>
-                                    </div>
-                                </div>
-                            </div>
+
+                <!-- Chart Section -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <ul class="nav nav-tabs mb-3">
+                            <li class="nav-item"><a href="#" class="nav-link active">Progress</a></li>
+                            <li class="nav-item"><a href="#" class="nav-link text-muted">Attendance</a></li>
+                            <li class="nav-item"><a href="#" class="nav-link text-muted">Fees History</a></li>
+                            <li class="nav-item"><a href="#" class="nav-link text-muted">School Bus</a></li>
+                        </ul>
+
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-outline-primary me-2">All</button>
+                            <button class="btn btn-sm btn-outline-primary">Maths</button>
+                            <button class="btn btn-sm btn-outline-secondary">Science</button>
+                            <button class="btn btn-sm btn-outline-secondary">English</button>
+                            <button class="btn btn-sm btn-outline-secondary">History</button>
+                        </div>
+
+                        <div>
+                            <canvas id="studentProgressChart" height="100"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div> 
+</div>
+
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('studentProgressChart');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5', 'Test 6'],
+        datasets: [{
+            label: 'Progress',
+            data: [55, 79, 63, 72, 65, 80],
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0,123,255,0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#007bff'
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false }},
+        scales: {
+            y: { beginAtZero: true, max: 100, ticks: { stepSize: 25 }}
+        }
+    }
+});
+</script>
 @endsection

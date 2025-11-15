@@ -32,6 +32,7 @@ class HomeController extends Controller
     $totalStudents = Student::count();
     $totalTeachers = Teacher::count();
     $totalDepartments = Department::count();
+    $totalEarnings = Student::sum('amount_paid'); // 💰 total actual earnings
 
     // Get students grouped by gender
     $studentsByGender = Student::selectRaw('gender, COUNT(*) as total')
@@ -71,7 +72,8 @@ class HomeController extends Controller
         'boys',
         'girls',
         'studentData',
-        'teacherData'
+        'teacherData',
+        'totalEarnings'
     ));
 }
 

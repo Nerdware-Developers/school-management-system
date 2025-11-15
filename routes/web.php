@@ -88,10 +88,15 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('student/grid', 'studentGrid')->middleware('auth')->name('student/grid'); // grid student
         Route::get('student/add/page', 'studentAdd')->middleware('auth')->name('student/add/page'); // page student
         Route::post('student/add/save', 'studentSave')->name('student/add/save'); // save record student
-        Route::get('student/edit/{id}', 'studentEdit'); // view for edit
+        Route::get('student/edit/{id}', 'studentEdit')->name('student/edit'); // view for edit
+        Route::get('student/edit/{id}', 'studentEdit')->name('student/edit'); // view for edit
         Route::post('student/update', 'studentUpdate')->name('student/update'); // update record student
         Route::post('student/delete', 'studentDelete')->name('student/delete'); // delete record student
         Route::get('student/profile/{id}', 'studentProfile')->middleware('auth'); // profile student
+        Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');// testing purposes remeber to remove
+        Route::get('/students/coactivities', function () {return view('student.partials.activities');})->name('students.coactivities');
+
+
     });
 
     // ------------------------ teacher -------------------------------//
@@ -121,11 +126,18 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
     Route::controller(SubjectController::class)->group(function () {
         Route::get('subject/list/page', 'subjectList')->middleware('auth')->name('subject/list/page'); // subject/list/page
         Route::get('subject/add/page', 'subjectAdd')->middleware('auth')->name('subject/add/page'); // subject/add/page
-        Route::post('subject/save', 'saveRecord')->name('subject/save'); // subject/save
+        Route::post('subject/save', 'saveRecord')->name('subject.save'); // subject/save
         Route::post('subject/update', 'updateRecord')->name('subject/update'); // subject/update
         Route::post('subject/delete', 'deleteRecord')->name('subject/delete'); // subject/delete
         Route::get('subject/edit/{subject_id}', 'subjectEdit'); // subject/edit/page
     });
+
+    // ----------------------- exams -----------------------------//
+    Route::controller(ExamController::class)->group(function () {
+        Route::get('exam/list/page', 'ExamList')->middleware('auth')->name('exam/list/page');
+        Route::get('exam/add/page', 'ExamAdd')->middleware('auth')->name('exam/add/page');
+    });
+
 
     // ----------------------- invoice -----------------------------//
     Route::controller(InvoiceController::class)->group(function () {
@@ -147,11 +159,23 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('invoice/settings/bank/page', 'invoiceSettingsBank')->middleware('auth')->name('invoice/settings/bank/page'); // invoice/settings/bank/page
     });
 
-    // ----------------------- accounts ----------------------------//
+   // ----------------------- accounts ----------------------------//
     Route::controller(AccountsController::class)->group(function () {
-        Route::get('account/fees/collections/page', 'index')->middleware('auth')->name('account/fees/collections/page'); // account/fees/collections/page
-        Route::get('add/fees/collection/page', 'addFeesCollection')->middleware('auth')->name('add/fees/collection/page'); // add/fees/collection
-        Route::post('fees/collection/save', 'saveRecord')->middleware('auth')->name('fees/collection/save'); // fees/collection/save
-        Route::get('/student/search', [StudentController::class, 'search'])->name('student.search');
+        Route::get('account/fees/collections/page', 'index')->middleware('auth')->name('account/fees/collections/page');
+        Route::get('add/fees/collection/page', 'addFeesCollection')->middleware('auth')->name('add/fees/collection/page');
+        Route::post('fees/collection/save', 'saveRecord')->middleware('auth')->name('fees/collection/save');
+        Route::get('student/search', 'search')->name('student.search');
+        Route::get('student/fees-info/{id}', 'getFeesInfo')->name('student.fees.info');
     });
+
+    // ----------------------- exams ----------------------------//
+    Route::controller(ExamController::class)->group(function () {
+        Route::get('exams', 'index')->middleware('auth')->name('exams.page');
+        Route::get('add/exam/page', 'addExam')->middleware('auth')->name('add/exam/page');
+        Route::post('exam/save', 'saveExam')->middleware('auth')->name('exam.save');
+        Route::get('exam/results/entry', 'resultsEntry')->middleware('auth')->name('exam.results.entry');
+        Route::post('exam/results/save', 'resultsSave')->middleware('auth')->name('exam.results.save');
+    });
+
+
 });
