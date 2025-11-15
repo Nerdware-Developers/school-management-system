@@ -21,7 +21,7 @@
                 <div class="col-sm-12">
                     <div class="card">
                         <div class="card-body">
-                            <form action="{{ route('subject/save') }}" method="POST">
+                            <form action="{{ route('subject.save') }}" method="POST">
                                 @csrf
                                 <div class="row">
                                     <div class="col-12">
@@ -29,16 +29,34 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Subject Name <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control" name="subject_name" placeholder="Enter Subject Name">
+                                            <label>Teacher Name <span class="login-danger">*</span></label>
+                                            <select name="teacher_name">
+                                                <option value="">Select Teacher</option>
+                                                @foreach($teachers as $teacher)
+                                                    <option value="{{ $teacher->full_name }}">{{ $teacher->full_name }}</option>
+                                                @endforeach
+                                            </select>
+
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Class <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control" name="class" placeholder="Enter Class">
+                                            <label>Subject <span class="login-danger">*</span></label>
+                                            <input type="text" class="form-control" name="subject_name" placeholder="Enter Subject Name">
                                         </div>
                                     </div>
+                                    <div class="col-12 col-sm-4">
+                                            <div class="form-group local-forms">
+                                                <label>Class <span class="login-danger">*</span></label>
+                                                <select class="form-control" name="class">
+                                                    <option value="">Select Class</option>
+                                                    @foreach ($classes as $classe)
+                                                        <option value="{{ $classe->class_name }}">{{ $classe->class_name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
                                     <div class="col-12">
                                         <div class="student-submit">
                                             <button type="submit" class="btn btn-primary">Submit</button>

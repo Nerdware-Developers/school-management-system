@@ -1,123 +1,180 @@
 @extends('layouts.master')
 @section('content')
-    {{-- message --}}
-    {!! Toastr::message() !!}
-    <div class="page-wrapper">
-        <div class="content container-fluid">
-
-            <div class="page-header">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h3 class="page-title">Add Fees</h3>
-                        <ul class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="fees-collections.html">Accounts</a></li>
-                            <li class="breadcrumb-item active">Add Fees</li>
-                        </ul>
-                    </div>
+{!! Toastr::message() !!}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Add Fees</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="#">Accounts</a></li>
+                        <li class="breadcrumb-item active">Add Fees</li>
+                    </ul>
                 </div>
             </div>
+        </div>
 
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <form action="{{ route('fees/collection/save') }}" method="POST">
-                                @csrf
-                                <div class="row">
-                                    <div class="col-12">
-                                        <h5 class="form-title"><span>Fees Information</span></h5>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Student Name <span class="login-danger">*</span></label>
-                                            <select id="student_name" name="student_name" style="width: 100%;"></select>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Student ID <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control" id="student_id" name="student_id" readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Gender <span class="login-danger">*</span></label>
-                                            <select class="form-control select" name="gender">
-                                                <option selected disabled>Select Gender</option>
-                                                <option value="Female">Female</option>
-                                                <option value="Male">Male</option>
-                                                <option value="Others">Others</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Fees Type <span class="login-danger">*</span></label>
-                                            <select class="form-control select" id="fees_type" name="fees_type">
-                                                <option selected disabled>-- Select Type --</option>
-                                                @foreach($feesType as $key => $feesTypes)
-                                                    <option value="{{ $feesTypes->fees_type }}"> {{ $feesTypes->fees_type }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms">
-                                            <label>Fees Amount <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control" id="fees_amount" name="fees_amount" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); this.value = this.value.replace(/(\..*)\./g, '$1');" value="{{ old('fees_amount') }}">
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-4">
-                                        <div class="form-group local-forms calendar-icon">
-                                            <label>Paid Date <span class="login-danger">*</span></label>
-                                            <input type="text" class="form-control datetimepicker" id="paid_date" name="paid_date" placeholder="DD-MM-YYYY">
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="student-submit">
-                                            <button type="submit" class="btn btn-primary">Submit</button>
-                                        </div>
+        <!-- Form Start -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form action="{{ route('fees/collection/save') }}" method="POST">
+                            @csrf
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Fees Information</span></h5>
+                                </div>
+
+                                {{-- Student Search --}}
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group local-forms">
+                                        <label>Student Name <span class="login-danger">*</span></label>
+                                        <select id="student_name" style="width: 100%;" required></select>
+                                        <input type="hidden" id="student_id" name="student_id">
                                     </div>
                                 </div>
-                            </form>
-                        </div>
+
+                                {{-- Admission Number --}}
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group local-forms">
+                                        <label>Admission Number</label>
+                                        <input type="text" class="form-control" id="admission_number" readonly>
+                                    </div>
+                                </div>
+
+                                {{-- Fee Info --}}
+                                <div class="col-12 col-sm-4">
+                                    <div class="form-group local-forms">
+                                        <label>Fee per Term</label>
+                                        <input type="text" id="fee_per_term" class="form-control" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-4">
+                                    <div class="form-group local-forms">
+                                        <label>Total Paid</label>
+                                        <input type="text" id="total_paid" class="form-control" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-4">
+                                    <div class="form-group local-forms">
+                                        <label>Outstanding Balance</label>
+                                        <input type="text" id="balance" class="form-control" readonly>
+                                    </div>
+                                </div>
+
+                                {{-- Payment Fields --}}
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group local-forms">
+                                        <label>Amount Paying <span class="login-danger">*</span></label>
+                                        <input type="number" class="form-control" name="amount_paying" required placeholder="Enter amount to pay">
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group local-forms calendar-icon">
+                                        <label>Paid Date <span class="login-danger">*</span></label>
+                                        <input type="text" class="form-control datetimepicker" name="paid_date" placeholder="DD-MM-YYYY" required>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="student-submit text-end">
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </div>
+                                </div>
+                            </div> {{-- end row --}}
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- Form End -->
     </div>
-    @section('script')
+</div>
+@endsection
+
+@section('script')
 <script>
 $(document).ready(function() {
+
+    // 🔍 Initialize Select2
     $('#student_name').select2({
         placeholder: '-- Search Student --',
         ajax: {
             url: '{{ route("student.search") }}',
             dataType: 'json',
             delay: 250,
-            data: function (params) {
+            data: function(params) {
                 return { term: params.term };
             },
-            processResults: function (data) {
+            processResults: function(data) {
                 return { results: data };
             },
             cache: true
         }
     });
 
-    // When a student is selected
-    $('#student_name').on('select2:select', function (e) {
+    // 🧭 When student selected
+    $('#student_name').on('select2:select', function(e) {
         var data = e.params.data;
         $('#student_id').val(data.id);
-        // store the full name (for Laravel)
+
+        // Remove any previous hidden input for student_name
+        $('input[name="student_name"]').remove();
+
+        // Add student_name as hidden field
         $('<input>').attr({
             type: 'hidden',
             name: 'student_name',
-            value: data.full_name
+            value: data.text
         }).appendTo('form');
+
+        // ✅ Fetch student's fee info
+        $.ajax({
+            url: '/student/fees-info/' + data.id,
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('Fee info loaded for ' + response.student);
+
+                    // Parse numeric values safely
+                    let feePerTerm = parseFloat((response.fee_per_term || "0").replace(/,/g, '')) || 0;
+                    let totalPaid  = parseFloat((response.total_paid || "0").replace(/,/g, '')) || 0;
+                    let balance    = parseFloat((response.balance || "0").replace(/,/g, '')) || 0;
+
+                    // Fill in the fields
+                    $('#admission_number').val(response.admission);
+                    $('#fee_per_term').val(feePerTerm.toFixed(2));
+                    $('#total_paid').val(totalPaid.toFixed(2));
+                    $('#balance').val(balance.toFixed(2));
+                } else {
+                    toastr.error('Unable to load fee info');
+                    $('#fee_per_term, #total_paid, #balance, #admission_number').val('');
+                }
+            },
+            error: function() {
+                toastr.error('Failed to fetch student fee info');
+                $('#fee_per_term, #total_paid, #balance, #admission_number').val('');
+            }
+        });
     });
+
+    // 💰 Update Outstanding Balance as user types amount
+    $(document).on('input', 'input[name="amount_paying"]', function() {
+        let feePerTerm = parseFloat($('#fee_per_term').val()) || 0;
+        let totalPaid  = parseFloat($('#total_paid').val()) || 0;
+        let amountPaying = parseFloat($(this).val()) || 0;
+
+        // Correct balance formula
+        let newBalance = feePerTerm - (totalPaid + amountPaying);
+        $('#balance').val(newBalance.toFixed(2));
+    });
+
 });
 </script>
 @endsection
-
-

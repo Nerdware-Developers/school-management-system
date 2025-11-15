@@ -19,29 +19,32 @@
             {{-- message --}}
             {!! Toastr::message() !!}
             <div class="student-group-form">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6">
-                        <div class="form-group">
-                            <input type="text" class="form-control" placeholder="Search by ID ...">
+                <form id="searchForm" method="GET" action="{{ route('student/list') }}">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="form-group">
+                                <input type="text" name="class" class="form-control"
+                                    placeholder="Search by class..." value="{{ request('class') }}">
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="form-group">
+                                <input type="text" name="name" class="form-control"
+                                    placeholder="Search by name..." value="{{ request('name') }}">
+                            </div>
+                        </div>
+                        <div class="col-lg-2">
+                            <div class="search-student-btn">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="form-group">
-                            <input type="text" class="form-control" placeholder="Search by Name ...">
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="form-group">
-                            <input type="text" class="form-control" placeholder="Search by Phone ...">
-                        </div>
-                    </div>
-                    <div class="col-lg-2">
-                        <div class="search-student-btn">
-                            <button type="btn" class="btn btn-primary">Search</button>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
+
+            @if(request('class'))
+                <h5>Showing students in class: <strong>{{ request('class') }}</strong></h5>
+            @endif
             <div class="row">
                 <div class="col-sm-12">
                     <div class="card card-table comman-shadow">
@@ -74,7 +77,7 @@
                                                     <input class="form-check-input" type="checkbox" value="something">
                                                 </div>
                                             </th>
-                                            <th>ID</th>
+                                            <th>ADM</th>
                                             <th>Name</th>
                                             <th>Class</th>
                                             <th>DOB</th>
@@ -92,21 +95,25 @@
                                                     <input class="form-check-input" type="checkbox" value="something">
                                                 </div>
                                             </td>
-                                            <td>STD{{ ++$key }}</td>
+                                            <td>{{ $list->admission_number }}</td>
                                             <td hidden class="id">{{ $list->id }}</td>
-                                            <td hidden class="avatar">{{ $list->upload }}</td>
+                                            <td hidden class="avatar">{{ $list->image }}</td>
                                             <td>
                                                 <h2 class="table-avatar">
-                                                    <a href="student-details.html"class="avatar avatar-sm me-2">
-                                                        <img class="avatar-img rounded-circle" src="{{ Storage::url('student-photos/'.$list->upload) }}" alt="">
+                                                    <a href="{{ url('student/profile/' . $list->id) }}" class="avatar avatar-sm me-2">
+                                                        <img src="{{ asset('storage/student-photos/'.$list->image) }}" 
+                                                            alt="Student Image" 
+                                                            class="avatar-img rounded-circle">
                                                     </a>
-                                                    <a href="student-details.html">{{ $list->first_name }} {{ $list->last_name }}</a>
+                                                    <a href="{{ url('student/profile/' . $list->id) }}">
+                                                        {{ $list->first_name }} {{ $list->last_name }}
+                                                    </a>
                                                 </h2>
                                             </td>
                                             <td>{{ $list->class }} {{ $list->section }}</td>
                                             <td>{{ $list->date_of_birth }}</td>
                                             <td>{{ $list->parent_name }}</td>
-                                            <td>{{ $list->phone_number }}</td>
+                                            <td>{{ $list->parent_number }}</td>
                                             <td>{{$list->address}}</td>
                                             <td class="text-end">
                                                 <div class="actions">
@@ -129,7 +136,7 @@
             </div>
         </div>
     </div>
-
+    
     {{-- model student delete --}}
     <div class="modal custom-modal fade" id="studentUser" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
@@ -169,6 +176,28 @@
             $('.e_avatar').val(_this.find('.avatar').text());
         });
     </script>
+    <script>
+$(document).ready(function () {
+    // Live search for class and name
+    $('input[name="class"], input[name="name"]').on('keyup', function () {
+        const form = $('#searchForm');
+        const formData = form.serialize();
+
+        $.ajax({
+            url: form.attr('action'),
+            data: formData,
+            type: 'GET',
+            success: function (response) {
+                const newBody = $(response).find('tbody').html();
+                $('tbody').html(newBody);
+            },
+            error: function () {
+                console.error("Failed to fetch filtered students");
+            }
+        });
+    });
+});
+</script>
     @endsection
 
 @endsection

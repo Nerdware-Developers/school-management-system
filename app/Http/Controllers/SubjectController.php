@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use DB;
 use App\Models\Subject;
-
 use Brian2694\Toastr\Facades\Toastr;
+use App\Models\Teacher;
+use App\Models\Classe;
 
 class SubjectController extends Controller
 {
@@ -19,36 +20,44 @@ class SubjectController extends Controller
 
     /** subject add */
     public function subjectAdd()
-    {
-        return view('subjects.subject_add');
-    }
+{
+    $teachers = Teacher::all();
+    $classes = Classe::all();
+
+    return view('subjects.subject_add', compact('teachers', 'classes'));
+}
+
 
     /** save record */
     public function saveRecord(Request $request)
     {
-        $request->validate([
-            'subject_name' => 'required|string',
-            'class'        => 'required|string',
-        ]);
-        
         DB::beginTransaction();
         try {
-                $saveRecord = new Subject;
-                $saveRecord->subject_name   = $request->subject_name;
-                $saveRecord->class          = $request->class;
-                $saveRecord->save();
+            $request->validate([
+                'subject_name' => 'required|string|max:255',
+                'teacher_name' => 'required|string|max:255',
+                'class' => 'required|string|max:255',
+            ]);
 
-                Toastr::success('Has been add successfully :)','Success');
-                DB::commit();
+            Subject::create([
+                'subject_name'  => $request->subject_name,
+                'teacher_name'  => $request->teacher_name,
+                'class'         => $request->class,  
+            ]);
+
+            Toastr::success('Subject added successfully :)','Success');
+            DB::commit();
             return redirect()->back();
-           
+            
         } catch(\Exception $e) {
             \Log::info($e);
             DB::rollback();
-            Toastr::error('fail, Add new record:)','Error');
+            Toastr::error('Fail, add subject :)','Error');
             return redirect()->back();
         }
     }
+
+
 
     /** subject edit view */
     public function subjectEdit($subject_id)
