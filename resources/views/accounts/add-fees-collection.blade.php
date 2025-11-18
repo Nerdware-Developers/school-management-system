@@ -170,8 +170,11 @@ $(document).ready(function() {
         let totalPaid  = parseFloat($('#total_paid').val()) || 0;
         let amountPaying = parseFloat($(this).val()) || 0;
 
-        // Correct balance formula
+        // Correct balance formula (allow overpayment, clamp UI to 0)
         let newBalance = feePerTerm - (totalPaid + amountPaying);
+        if (newBalance < 0) {
+            newBalance = 0;
+        }
         $('#balance').val(newBalance.toFixed(2));
     });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use DB;
 use App\Models\Subject;
 use Brian2694\Toastr\Facades\Toastr;
@@ -37,6 +38,10 @@ class SubjectController extends Controller
                 'subject_name' => 'required|string|max:255',
                 'teacher_name' => 'required|string|max:255',
                 'class' => 'required|string|max:255',
+            ], [
+                'subject_name.required' => 'Subject name is required',
+                'teacher_name.required' => 'Teacher name is required',
+                'class.required' => 'Class is required',
             ]);
 
             Subject::create([
@@ -49,6 +54,11 @@ class SubjectController extends Controller
             DB::commit();
             return redirect()->back();
             
+        } catch(ValidationException $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch(\Exception $e) {
             \Log::info($e);
             DB::rollback();
@@ -63,7 +73,9 @@ class SubjectController extends Controller
     public function subjectEdit($subject_id)
     {
         $subjectEdit = Subject::where('subject_id',$subject_id)->first();
-        return view('subjects.subject_edit',compact('subjectEdit'));
+        $teachers = Teacher::all();
+        $classes = Classe::all();
+        return view('subjects.subject_edit',compact('subjectEdit', 'teachers', 'classes'));
     }
 
     /** update record */
@@ -71,9 +83,19 @@ class SubjectController extends Controller
     {
         DB::beginTransaction();
         try {
+            $request->validate([
+                'subject_name' => 'required|string|max:255',
+                'teacher_name' => 'required|string|max:255',
+                'class' => 'required|string|max:255',
+            ], [
+                'subject_name.required' => 'Subject name is required',
+                'teacher_name.required' => 'Teacher name is required',
+                'class.required' => 'Class is required',
+            ]);
             
             $updateRecord = [
                 'subject_name' => $request->subject_name,
+                'teacher_name' => $request->teacher_name,
                 'class'        => $request->class,
             ];
 
@@ -82,6 +104,11 @@ class SubjectController extends Controller
             DB::commit();
             return redirect()->back();
            
+        } catch(ValidationException $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch(\Exception $e) {
             \Log::info($e);
             DB::rollback();

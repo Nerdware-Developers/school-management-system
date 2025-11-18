@@ -74,6 +74,7 @@
                                             </th>
                                             <th>ID</th>
                                             <th>Name</th>
+                                            <th>Teacher</th>
                                             <th>Class</th>
                                             <th class="text-end">Action</th>
                                         </tr>
@@ -93,6 +94,7 @@
                                                     <a>{{ $value->subject_name }}</a>
                                                 </h2>
                                             </td>
+                                            <td>{{ $value->teacher_name ?? 'N/A' }}</td>
                                             <td>{{ $value->class }}</td>
                                             <td class="text-end">
                                                 <div class="actions">

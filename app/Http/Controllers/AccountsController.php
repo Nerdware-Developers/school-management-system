@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\FeesType;
 use App\Models\FeesInformation;
-use App\Models\Student; 
+use App\Models\Student;
+use App\Models\StudentFeeTerm;
 use Brian2694\Toastr\Facades\Toastr;
 
 class AccountsController extends Controller
@@ -49,35 +50,50 @@ class AccountsController extends Controller
     DB::beginTransaction();
 
     try {
-        $student = Student::findOrFail($request->student_id);
+        $student = Student::with(['feeTerms' => function ($q) {
+            $q->orderByDesc('created_at');
+        }])->findOrFail($request->student_id);
 
-        // 🔹 Current values
-        $feeAmount    = $student->fee_amount ?? 0;
-        $alreadyPaid  = $student->amount_paid ?? 0;
-        $newPayment   = $request->amount_paying;
+        $currentTerm = $student->feeTerms->firstWhere('status', 'current')
+            ?? $student->feeTerms->first();
 
-        // 🔹 New totals
-        $newTotalPaid = $alreadyPaid + $newPayment;
-        $newBalance   = $feeAmount - $newTotalPaid;
-
-        // 🔹 Prevent overpayment
-        if ($newBalance < 0) {
-            Toastr::error('Payment exceeds total fee amount!', 'Error');
+        if (!$currentTerm) {
+            Toastr::error('No active term found for this student. Please create a term first.', 'Error');
             return redirect()->back()->withInput();
         }
 
-        // 🔹 Save new payment in fees_information
+        // 🔹 Current values for this term only
+        $feeAmount    = (float) $currentTerm->fee_amount;
+        $alreadyPaid  = (float) $currentTerm->amount_paid;
+        $newPayment   = $request->amount_paying;
+
+        // 🔹 New totals (allow overpayment; balance will clamp to 0)
+        $newTotalPaid = $alreadyPaid + $newPayment;
+        $newBalance   = $feeAmount - $newTotalPaid;
+
+        // 🔹 Save new payment in fees_information (audit trail)
         $payment = new FeesInformation();
-        $payment->student_id   = $student->id;
-        $payment->student_name = $student->first_name . ' ' . $student->last_name;
-        $payment->fees_type    = $request->fees_type ?? 'Tuition Fee';
-        $payment->fees_amount  = $newPayment; // Amount just paid
-        $payment->paid_date    = $request->paid_date;
+        $payment->student_id         = $student->id;
+        $payment->student_fee_term_id = $currentTerm->id;
+        $payment->student_name       = $student->first_name . ' ' . $student->last_name;
+        $payment->fees_type          = $request->fees_type ?? 'Tuition Fee';
+        $payment->fees_amount        = $newPayment; // Amount just paid for this term
+        $payment->paid_date          = $request->paid_date;
         $payment->save();
 
-        // 🔹 Update student record
+        // 🔹 Update current term
+        $currentTerm->amount_paid = $newTotalPaid;
+        $currentTerm->closing_balance = max(0, $newBalance);
+        if ($currentTerm->closing_balance <= 0) {
+            $currentTerm->status = 'closed';
+        }
+        $currentTerm->save();
+
+        // 🔹 Update student snapshot (for quick overview)
         $student->amount_paid = $newTotalPaid;
-        $student->balance     = $newBalance;
+        $student->balance     = $currentTerm->closing_balance;
+        $student->fee_amount  = $feeAmount;
+        $student->financial_year = $currentTerm->academic_year;
         $student->save();
 
         DB::commit();
@@ -119,15 +135,25 @@ class AccountsController extends Controller
     public function getFeesInfo($id)
 {
     try {
-        // Fetch student record
-        $student = Student::findOrFail($id);
+        // Fetch student with term data
+        $student = Student::with(['feeTerms' => function ($q) {
+            $q->orderByDesc('created_at');
+        }])->findOrFail($id);
 
-        // Fee details from student table
-        $feePerTerm = $student->fee_amount ?? 0;
-        $totalPaid  = $student->amount_paid ?? 0;
+        $currentTerm = $student->feeTerms->firstWhere('status', 'current')
+            ?? $student->feeTerms->first();
 
-        // Calculate balance (current outstanding)
-        $balance = $feePerTerm - $totalPaid;
+        if ($currentTerm) {
+            // Use term-based finance
+            $feePerTerm = (float) $currentTerm->fee_amount;
+            $totalPaid  = (float) $currentTerm->amount_paid;
+            $balance    = (float) $currentTerm->closing_balance;
+        } else {
+            // Fallback to legacy student-level amounts if no term exists
+            $feePerTerm = (float) ($student->fee_amount ?? 0);
+            $totalPaid  = (float) ($student->amount_paid ?? 0);
+            $balance    = $feePerTerm - $totalPaid;
+        }
 
         return response()->json([
             'success'      => true,
@@ -137,6 +163,8 @@ class AccountsController extends Controller
             'fee_per_term' => number_format($feePerTerm, 2),
             'total_paid'   => number_format($totalPaid, 2),
             'balance'      => number_format($balance, 2),
+            'term_name'    => $currentTerm->term_name ?? null,
+            'academic_year'=> $currentTerm->academic_year ?? null,
         ]);
     } catch (\Exception $e) {
         \Log::error('Fee info fetch error: ' . $e->getMessage());

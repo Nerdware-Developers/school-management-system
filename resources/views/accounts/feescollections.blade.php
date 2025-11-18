@@ -59,7 +59,7 @@
                                                     <h2 class="table-avatar">
                                                         <a class="avatar avatar-sm me-2">
                                                             <img class="avatar-img rounded-circle" 
-                                                            src="{{ !empty($value->image) ? asset('storage/student-photos/' . $value->image) : asset('assets/img/profiles/avatar-01.jpg') }}" 
+                                                            src="{{ !empty($value->image) ? route('student.photo', $value->image) : asset('images/photo_defaults.jpg') }}" 
                                                             alt="{{ $value->student_name }}">
 
                                                         </a>
