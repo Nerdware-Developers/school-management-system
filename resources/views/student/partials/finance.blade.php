@@ -1,6 +1,19 @@
 <div class="card p-4 shadow-sm rounded-3">
     <h4 class="mb-3">Financial Information</h4>
     <div class="row">
+        <!-- Term Name -->
+        <div class="col-12 col-sm-4">
+            <div class="form-group local-forms">
+                <label>Term Name<span class="login-danger"></span></label>
+                <input type="text" class="form-control @error('term_name') is-invalid @enderror"
+                    name="term_name" placeholder="e.g., Term 1"
+                    value="{{ old('term_name') }}">
+                @error('term_name')
+                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                @enderror
+            </div>
+        </div>
+
         <!-- Fee Amount -->
         <div class="col-12 col-sm-4">
             <div class="form-group local-forms">

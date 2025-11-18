@@ -93,9 +93,12 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::post('student/update', 'studentUpdate')->name('student/update'); // update record student
         Route::post('student/delete', 'studentDelete')->name('student/delete'); // delete record student
         Route::get('student/profile/{id}', 'studentProfile')->middleware('auth'); // profile student
+        Route::post('student/{student}/terms', 'storeTerm')->name('student.terms.store');
+        Route::post('student/{student}/terms/{term}/payment', 'recordTermPayment')->name('student.terms.payment');
         Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');// testing purposes remeber to remove
         Route::get('/students/coactivities', function () {return view('student.partials.activities');})->name('students.coactivities');
 
+        Route::get('student/photo/{filename}', 'studentPhoto')->name('student.photo');
 
     });
 

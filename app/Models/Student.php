@@ -54,4 +54,14 @@ class Student extends Model
         'sponsor_name',
     ];
 
+    public function feeTerms()
+    {
+        return $this->hasMany(StudentFeeTerm::class);
+    }
+
+    public function latestFeeTerm()
+    {
+        return $this->hasOne(StudentFeeTerm::class)->latestOfMany();
+    }
+
 }

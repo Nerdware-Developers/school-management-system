@@ -101,8 +101,8 @@
                                             <td>
                                                 <h2 class="table-avatar">
                                                     <a href="{{ url('student/profile/' . $list->id) }}" class="avatar avatar-sm me-2">
-                                                        <img src="{{ asset('storage/student-photos/'.$list->image) }}" 
-                                                            alt="Student Image" 
+                                                        <img src="{{ $list->image ? route('student.photo', $list->image) : asset('images/photo_defaults.jpg') }}"
+                                                            alt="Student Image"
                                                             class="avatar-img rounded-circle">
                                                     </a>
                                                     <a href="{{ url('student/profile/' . $list->id) }}">

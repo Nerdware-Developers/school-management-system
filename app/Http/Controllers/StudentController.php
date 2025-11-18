@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use DB;
 use App\Models\Student;
+use App\Models\StudentFeeTerm;
+use App\Models\FeesInformation;
 use Illuminate\Http\Request;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -116,6 +119,7 @@ class StudentController extends Controller
             'emergency_contact' => 'nullable|string|max:20',
 
             // 💰 Financial Information
+            'term_name'         => 'nullable|string|max:100',
             'fee_amount'        => 'nullable|numeric',
             'financial_year'    => 'nullable|string|max:50',
             'amount_paid'       => 'nullable|numeric',
@@ -148,43 +152,33 @@ class StudentController extends Controller
 
         DB::beginTransaction();
 
-try {
-    $student = new Student;
+        try {
+            $student = new Student;
+            $student->fill($request->except(['image', 'balance']));
 
-    // Fill all non-file fields first
-    $student->fill($request->except(['image', 'balance']));
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $file->storeAs('public/student-photos', $fileName);
+                $student->image = $fileName;
+            }
 
-    // Handle Image Upload
-    if ($request->hasFile('image')) {
-        $file = $request->file('image');
+            $feeAmount = (float) $request->input('fee_amount', 0);
+            $amountPaid = (float) $request->input('amount_paid', 0);
+            $student->balance = $feeAmount - $amountPaid;
+            $student->save();
 
-        // Generate a clean unique name
-        $fileName = time() . '_' . $file->getClientOriginalName();
+            $this->syncInitialFeeTerm($student, $request, $feeAmount, $amountPaid);
 
-        // Store the file inside storage/app/public/student-photos
-        $file->storeAs('public/student-photos', $fileName);
-
-        // Save only the filename to the DB
-        $student->image = $fileName;
-    }
-
-    // Auto-calculate balance
-    $feeAmount = $request->input('fee_amount', 0);
-    $amountPaid = $request->input('amount_paid', 0);
-    $student->balance = $feeAmount - $amountPaid;
-
-    $student->save();
-
-    DB::commit();
-    Toastr::success('Student added successfully!', 'Success');
-    return redirect()->back();
-
-} catch (\Exception $e) {
-    DB::rollback();
-    dd($e->getMessage());
-    Toastr::error('Failed to add student!', 'Error');
-    return redirect()->back()->withErrors(['error' => $e->getMessage()]);
-}
+            DB::commit();
+            Toastr::success('Student added successfully!', 'Success');
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            report($e);
+            Toastr::error('Failed to add student!', 'Error');
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
 
     }
 
@@ -274,18 +268,43 @@ try {
     /** student profile page */
     public function studentProfile($id)
     {
-        $studentProfile = Student::findOrFail($id);
+        $studentProfile = Student::with(['feeTerms' => function ($query) {
+            $query->orderByDesc('created_at');
+        }])->findOrFail($id);
 
-        // These columns already exist in your students table
-        $feePerTerm = $studentProfile->fee_amount ?? 0;
-        $amountPaid = $studentProfile->amount_paid ?? 0;
-        $balance = $studentProfile->balance ?? ($feePerTerm - $amountPaid);
+        $payments = FeesInformation::with('term')
+            ->where('student_id', $id)
+            ->orderByDesc('paid_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $feeTerms = $studentProfile->feeTerms;
+        $currentTerm = $feeTerms->firstWhere('status', 'current') ?? $feeTerms->first();
+        $previousTerm = $feeTerms->first(function ($term) use ($currentTerm) {
+            return $currentTerm && $term->id !== $currentTerm->id;
+        });
+
+        $financialSummary = [
+            'total_fee_amount' => $feeTerms->sum('fee_amount'),
+            'total_amount_paid' => $feeTerms->sum('amount_paid'),
+            'outstanding_balance' => $currentTerm ? $currentTerm->closing_balance : ($studentProfile->balance ?? 0),
+            'carried_balance' => $currentTerm ? $currentTerm->opening_balance : 0,
+            'previous_balance' => $previousTerm ? $previousTerm->closing_balance : 0,
+        ];
+
+        $feePerTerm = $currentTerm->fee_amount ?? 0;
+        $amountPaid = $currentTerm->amount_paid ?? 0;
+        $balance = $financialSummary['outstanding_balance'];
 
         return view('student.student-profile', compact(
             'studentProfile',
             'feePerTerm',
             'amountPaid',
-            'balance'
+            'balance',
+            'feeTerms',
+            'currentTerm',
+            'financialSummary',
+            'payments'
         ));
     }
 
@@ -298,7 +317,159 @@ try {
     return view('student.partials.activities');
 }
 
+    public function studentPhoto($filename)
+    {
+        $filename = basename($filename);
+        $path = 'student-photos/' . $filename;
 
+        if (!Storage::disk('public')->exists($path)) {
+            $fallbackPath = public_path('images/photo_defaults.jpg');
 
+            if (file_exists($fallbackPath)) {
+                return response()->file($fallbackPath);
+            }
 
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($path);
+    }
+
+    public function storeTerm(Request $request, Student $student)
+    {
+        $validated = $request->validateWithBag('termCreation', [
+            'term_name' => 'required|string|max:100',
+            'academic_year' => 'required|string|max:25',
+            'fee_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $previousTerm = $student->feeTerms()->latest('id')->first();
+
+            if ($previousTerm) {
+                $previousTerm->status = $previousTerm->closing_balance > 0 ? 'carried' : 'closed';
+                $previousTerm->save();
+            }
+
+            $openingBalance = $previousTerm ? $previousTerm->closing_balance : 0;
+
+            $term = $student->feeTerms()->create([
+                'term_name' => $validated['term_name'],
+                'academic_year' => $validated['academic_year'],
+                'fee_amount' => $validated['fee_amount'],
+                'amount_paid' => 0,
+                'opening_balance' => $openingBalance,
+                'closing_balance' => $openingBalance + $validated['fee_amount'],
+                'status' => 'current',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $student->balance = $term->closing_balance;
+            $student->fee_amount = $validated['fee_amount'];
+            $student->financial_year = $validated['academic_year'];
+            $student->save();
+
+            DB::commit();
+            Toastr::success('New term created successfully.', 'Success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            report($e);
+            Toastr::error('Failed to create a new term.', 'Error');
+        }
+
+        return redirect()->back();
+    }
+
+    public function recordTermPayment(Request $request, Student $student, StudentFeeTerm $term)
+    {
+        abort_if($term->student_id !== $student->id, 404);
+
+        $validated = $request->validateWithBag('termPayment', [
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|max:100',
+            'payment_reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // Create a payment record for this term
+            FeesInformation::create([
+                'student_id'           => $student->id,
+                'student_fee_term_id'  => $term->id,
+                'student_name'         => $student->first_name . ' ' . $student->last_name,
+                'gender'               => $student->gender,
+                'fees_type'            => $validated['payment_method'] ?? 'Term Payment',
+                'fees_amount'          => $validated['amount'],
+                'paid_date'            => now(),
+            ]);
+
+            $term->amount_paid += $validated['amount'];
+            $term->last_payment_method = $validated['payment_method'];
+            $term->last_payment_reference = $validated['payment_reference'] ?? null;
+            $term->last_payment_at = now();
+
+            if (!empty($validated['notes'])) {
+                $term->notes = trim(($term->notes ? $term->notes . PHP_EOL : '') . $validated['notes']);
+            }
+
+            $term->closing_balance = $term->opening_balance + $term->fee_amount - $term->amount_paid;
+
+            if ($term->closing_balance <= 0) {
+                $term->status = 'closed';
+                $term->closing_balance = 0;
+            }
+
+            $term->save();
+
+            $student->balance = $term->closing_balance;
+            $student->amount_paid = $term->amount_paid;
+            $student->save();
+
+            DB::commit();
+            Toastr::success('Payment recorded successfully.', 'Success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            report($e);
+            Toastr::error('Failed to record payment.', 'Error');
+        }
+
+        return redirect()->back();
+    }
+
+    protected function syncInitialFeeTerm(Student $student, Request $request, float $feeAmount, float $amountPaid): void
+    {
+        if ($feeAmount == 0 && $amountPaid == 0) {
+            return;
+        }
+
+        $closingBalance = $feeAmount - $amountPaid;
+
+        $student->feeTerms()->create([
+            'term_name' => $request->filled('term_name')
+                ? $request->term_name
+                : $this->generateTermName($student, $request->input('financial_year')),
+            'academic_year' => $request->input('financial_year'),
+            'fee_amount' => $feeAmount,
+            'amount_paid' => $amountPaid,
+            'opening_balance' => 0,
+            'closing_balance' => $closingBalance,
+            'status' => $closingBalance <= 0 ? 'closed' : 'current',
+        ]);
+
+        $student->balance = $closingBalance;
+        $student->save();
+    }
+
+    protected function generateTermName(Student $student, ?string $academicYear = null): string
+    {
+        $count = $student->feeTerms()->count() + 1;
+        $year = $academicYear ?: now()->format('Y');
+
+        return "Term {$count} ({$year})";
+    }
 }
