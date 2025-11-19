@@ -63,7 +63,9 @@ class StudentController extends Controller
     }
 
     // Order and get results
-    $studentList = $query->orderBy('class')->get();
+    $studentList = $query->orderBy('class')
+        ->paginate(5)
+        ->withQueryString();
 
     return view('student.student', compact('studentList'));
 }
@@ -284,11 +286,16 @@ class StudentController extends Controller
             return $currentTerm && $term->id !== $currentTerm->id;
         });
 
+        $currentClosing = $currentTerm ? $currentTerm->closing_balance : ($studentProfile->balance ?? 0);
+        $currentOpening = $currentTerm ? $currentTerm->opening_balance : 0;
+
         $financialSummary = [
             'total_fee_amount' => $feeTerms->sum('fee_amount'),
             'total_amount_paid' => $feeTerms->sum('amount_paid'),
-            'outstanding_balance' => $currentTerm ? $currentTerm->closing_balance : ($studentProfile->balance ?? 0),
-            'carried_balance' => $currentTerm ? $currentTerm->opening_balance : 0,
+            'outstanding_balance' => max($currentClosing, 0),
+            'credit_balance' => $currentClosing < 0 ? abs($currentClosing) : 0,
+            'carried_balance' => max($currentOpening, 0),
+            'opening_credit' => $currentOpening < 0 ? abs($currentOpening) : 0,
             'previous_balance' => $previousTerm ? $previousTerm->closing_balance : 0,
         ];
 
@@ -350,11 +357,15 @@ class StudentController extends Controller
             $previousTerm = $student->feeTerms()->latest('id')->first();
 
             if ($previousTerm) {
-                $previousTerm->status = $previousTerm->closing_balance > 0 ? 'carried' : 'closed';
+                $previousTerm->status = $previousTerm->closing_balance > 0
+                    ? 'carried'
+                    : ($previousTerm->closing_balance < 0 ? 'credit' : 'closed');
                 $previousTerm->save();
             }
 
             $openingBalance = $previousTerm ? $previousTerm->closing_balance : 0;
+            $closingBalance = $openingBalance + $validated['fee_amount'];
+            $termStatus = $closingBalance > 0 ? 'current' : ($closingBalance < 0 ? 'credit' : 'closed');
 
             $term = $student->feeTerms()->create([
                 'term_name' => $validated['term_name'],
@@ -362,12 +373,12 @@ class StudentController extends Controller
                 'fee_amount' => $validated['fee_amount'],
                 'amount_paid' => 0,
                 'opening_balance' => $openingBalance,
-                'closing_balance' => $openingBalance + $validated['fee_amount'],
-                'status' => 'current',
+                'closing_balance' => $closingBalance,
+                'status' => $termStatus,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $student->balance = $term->closing_balance;
+            $student->balance = max($term->closing_balance, 0);
             $student->fee_amount = $validated['fee_amount'];
             $student->financial_year = $validated['academic_year'];
             $student->save();
@@ -419,14 +430,17 @@ class StudentController extends Controller
 
             $term->closing_balance = $term->opening_balance + $term->fee_amount - $term->amount_paid;
 
-            if ($term->closing_balance <= 0) {
+            if ($term->closing_balance > 0) {
+                $term->status = 'current';
+            } elseif ($term->closing_balance < 0) {
+                $term->status = 'credit';
+            } else {
                 $term->status = 'closed';
-                $term->closing_balance = 0;
             }
 
             $term->save();
 
-            $student->balance = $term->closing_balance;
+            $student->balance = max($term->closing_balance, 0);
             $student->amount_paid = $term->amount_paid;
             $student->save();
 
@@ -449,6 +463,8 @@ class StudentController extends Controller
 
         $closingBalance = $feeAmount - $amountPaid;
 
+        $status = $closingBalance > 0 ? 'current' : ($closingBalance < 0 ? 'credit' : 'closed');
+
         $student->feeTerms()->create([
             'term_name' => $request->filled('term_name')
                 ? $request->term_name
@@ -458,10 +474,10 @@ class StudentController extends Controller
             'amount_paid' => $amountPaid,
             'opening_balance' => 0,
             'closing_balance' => $closingBalance,
-            'status' => $closingBalance <= 0 ? 'closed' : 'current',
+            'status' => $status,
         ]);
 
-        $student->balance = $closingBalance;
+        $student->balance = max($closingBalance, 0);
         $student->save();
     }
 

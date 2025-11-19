@@ -15,7 +15,7 @@ class SubjectController extends Controller
     /** index page */
     public function subjectList()
     {
-        $subjectList = Subject::all();
+        $subjectList = Subject::orderBy('subject_id', 'desc')->paginate(10);
         return view('subjects.subject_list',compact('subjectList'));
     }
 
@@ -43,6 +43,16 @@ class SubjectController extends Controller
                 'teacher_name.required' => 'Teacher name is required',
                 'class.required' => 'Class is required',
             ]);
+
+            $duplicate = Subject::where('class', $request->class)
+                ->where('subject_name', $request->subject_name)
+                ->exists();
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'subject_name' => ['This subject is already assigned to that class. Please choose another combination.'],
+                ]);
+            }
 
             Subject::create([
                 'subject_name'  => $request->subject_name,
@@ -92,6 +102,17 @@ class SubjectController extends Controller
                 'teacher_name.required' => 'Teacher name is required',
                 'class.required' => 'Class is required',
             ]);
+
+            $duplicate = Subject::where('class', $request->class)
+                ->where('subject_name', $request->subject_name)
+                ->where('subject_id', '!=', $request->subject_id)
+                ->exists();
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'subject_name' => ['Another teacher already handles this subject for the same class.'],
+                ]);
+            }
             
             $updateRecord = [
                 'subject_name' => $request->subject_name,

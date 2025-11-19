@@ -54,19 +54,38 @@
                 <div class="card border-0 shadow-sm" style="background-color:#fee2e2;">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-1">Outstanding Balance</h6>
-                        <h3 class="fw-bold text-danger">Ksh{{ number_format($balance, 2) }}</h3>
-                        <p class="small text-muted mb-0">
-                            Updated {{ optional(optional($currentTerm)->updated_at)->diffForHumans() ?? 'N/A' }}
-                        </p>
+                        @php $creditAvailable = $financialSummary['credit_balance']; @endphp
+                        @if($balance > 0)
+                            <h3 class="fw-bold text-danger">Ksh{{ number_format($balance, 2) }}</h3>
+                            <p class="small text-muted mb-0">
+                                Updated {{ optional(optional($currentTerm)->updated_at)->diffForHumans() ?? 'N/A' }}
+                            </p>
+                        @elseif($creditAvailable > 0)
+                            <h3 class="fw-bold text-success">Credit Ksh{{ number_format($creditAvailable, 2) }}</h3>
+                            <p class="small text-muted mb-0">Carried into next term</p>
+                        @else
+                            <h3 class="fw-bold text-success">Settled</h3>
+                            <p class="small text-muted mb-0">No outstanding balance</p>
+                        @endif
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm" style="background-color:#fff7e6;">
                     <div class="card-body text-center">
-                        <h6 class="text-muted mb-1">Carried Forward</h6>
-                        <h3 class="fw-bold text-warning">Ksh{{ number_format($financialSummary['carried_balance'], 2) }}</h3>
-                        <p class="small text-muted mb-0">Prev Balance: Ksh{{ number_format($financialSummary['previous_balance'], 2) }}</p>
+                        @if($financialSummary['carried_balance'] > 0)
+                            <h6 class="text-muted mb-1">Carried Forward</h6>
+                            <h3 class="fw-bold text-warning">Ksh{{ number_format($financialSummary['carried_balance'], 2) }}</h3>
+                            <p class="small text-muted mb-0">Prev Balance: Ksh{{ number_format($financialSummary['previous_balance'], 2) }}</p>
+                        @elseif($financialSummary['opening_credit'] > 0)
+                            <h6 class="text-muted mb-1">Opening Credit</h6>
+                            <h3 class="fw-bold text-success">Ksh{{ number_format($financialSummary['opening_credit'], 2) }}</h3>
+                            <p class="small text-muted mb-0">Applied to current term</p>
+                        @else
+                            <h6 class="text-muted mb-1">Previous Term</h6>
+                            <h3 class="fw-bold">Ksh{{ number_format(max($financialSummary['previous_balance'], 0), 2) }}</h3>
+                            <p class="small text-muted mb-0">Summary overview</p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -77,9 +96,15 @@
             <div class="col-lg-6">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
+                        @php
+                            $creditAvailable = $financialSummary['credit_balance'];
+                            $badgeText = $balance > 0
+                                ? 'Outstanding: Ksh' . number_format($balance, 2)
+                                : ($creditAvailable > 0 ? 'Credit: Ksh' . number_format($creditAvailable, 2) : 'Settled');
+                        @endphp
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="fw-bold mb-0">Start New Term</h5>
-                            <span class="badge bg-light text-dark">Outstanding: Ksh{{ number_format($balance, 2) }}</span>
+                            <span class="badge bg-light text-dark">{{ $badgeText }}</span>
                         </div>
                         <form method="POST" action="{{ route('student.terms.store', $studentProfile->id) }}">
                             @csrf
@@ -129,9 +154,16 @@
                             <span class="badge bg-light text-dark">Current Term: {{ optional($currentTerm)->term_name ?? 'N/A' }}</span>
                         </div>
                         @if($currentTerm)
+                            @php
+                                $termBadge = $currentTerm->closing_balance > 0
+                                    ? 'Outstanding: Ksh' . number_format($currentTerm->closing_balance, 2)
+                                    : ($currentTerm->closing_balance < 0
+                                        ? 'Credit: Ksh' . number_format(abs($currentTerm->closing_balance), 2)
+                                        : 'Settled');
+                            @endphp
                             <p class="text-muted small mb-3">
-                                Outstanding: <strong>Ksh{{ number_format($currentTerm->closing_balance, 2) }}</strong> |
-                                Opening Balance: Ksh{{ number_format($currentTerm->opening_balance, 2) }}
+                                {{ $termBadge }} |
+                                Opening Balance: {{ $currentTerm->opening_balance < 0 ? 'Credit Ksh' . number_format(abs($currentTerm->opening_balance), 2) : 'Ksh' . number_format($currentTerm->opening_balance, 2) }}
                             </p>
                             <form method="POST" action="{{ route('student.terms.payment', [$studentProfile->id, $currentTerm->id]) }}">
                                 @csrf
@@ -213,20 +245,26 @@
                                         <td>Ksh{{ number_format($term->fee_amount, 2) }}</td>
                                         <td>Ksh{{ number_format($term->amount_paid, 2) }}</td>
                                         <td>
-                                            <span class="fw-bold {{ $term->closing_balance > 0 ? 'text-danger' : 'text-success' }}">
-                                                Ksh{{ number_format($term->closing_balance, 2) }}
-                                            </span>
+                                            @if($term->closing_balance > 0)
+                                                <span class="fw-bold text-danger">Ksh{{ number_format($term->closing_balance, 2) }}</span>
+                                            @elseif($term->closing_balance < 0)
+                                                <span class="fw-bold text-success">Credit Ksh{{ number_format(abs($term->closing_balance), 2) }}</span>
+                                            @else
+                                                <span class="text-muted">Settled</span>
+                                            @endif
                                         </td>
                                         <td>
                                             @php
                                                 $badgeClass = match($term->status) {
                                                     'current' => 'bg-primary',
                                                     'carried' => 'bg-warning text-dark',
+                                                    'credit' => 'bg-success',
                                                     default => 'bg-secondary',
                                                 };
+                                                $badgeLabel = $term->status === 'credit' ? 'Credit' : ucfirst($term->status);
                                             @endphp
                                             <span class="badge {{ $badgeClass }}">
-                                                {{ ucfirst($term->status) }}
+                                                {{ $badgeLabel }}
                                             </span>
                                         </td>
                                         <td>

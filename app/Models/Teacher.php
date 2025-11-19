@@ -53,4 +53,55 @@ class Teacher extends Model
                     ->withPivot('class_id')
                     ->withTimestamps();
     }
+
+    /**
+     * Pivot assignments linking teacher, subject, and class.
+     */
+    public function teachingAssignments()
+    {
+        return $this->hasMany(TeacherSubjectClass::class);
+    }
+
+    /**
+     * A collection of "Subject (Class)" labels for display.
+     */
+    public function getTeachingSummaryAttribute()
+    {
+        if (!$this->relationLoaded('teachingAssignments')) {
+            $assignments = $this->teachingAssignments()->with(['subject', 'class'])->get();
+            $this->setRelation('teachingAssignments', $assignments);
+        } else {
+            $assignments = $this->teachingAssignments;
+            $assignments->loadMissing(['subject', 'class']);
+        }
+
+        return $assignments->map(function ($assignment) {
+            $subject = optional($assignment->subject)->subject_name;
+            $class = optional($assignment->class)->class_name;
+
+            if ($subject && $class) {
+                return "{$subject} ({$class})";
+            }
+
+            return $subject ?? $class;
+        })->filter()->values();
+    }
+
+    /**
+     * Unique class names the teacher teaches in.
+     */
+    public function getTeachingClassesAttribute()
+    {
+        if (!$this->relationLoaded('teachingAssignments')) {
+            $assignments = $this->teachingAssignments()->with('class')->get();
+            $this->setRelation('teachingAssignments', $assignments);
+        } else {
+            $assignments = $this->teachingAssignments;
+            $assignments->loadMissing('class');
+        }
+
+        return $assignments->map(function ($assignment) {
+            return optional($assignment->class)->class_name;
+        })->filter()->unique()->values();
+    }
 }

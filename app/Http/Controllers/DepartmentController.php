@@ -33,7 +33,7 @@ class DepartmentController extends Controller
     {
         $draw            = $request->get('draw');
         $start           = $request->get("start");
-        $rowPerPage      = $request->get("length"); // total number of rows per page
+        $rowPerPage      = (int) $request->get("length"); // total number of rows per page
         $columnIndex_arr = $request->get('order');
         $columnName_arr  = $request->get('columns');
         $order_arr       = $request->get('order');
@@ -54,6 +54,10 @@ class DepartmentController extends Controller
             $query->orWhere('department_start_date', 'like', '%' . $searchValue . '%');
             $query->orWhere('no_of_students', 'like', '%' . $searchValue . '%');
         })->count();
+
+        if ($rowPerPage <= 0) {
+            $rowPerPage = 10;
+        }
 
         $records = $departments->orderBy($columnName, $columnSortOrder)
             ->where(function ($query) use ($searchValue) {

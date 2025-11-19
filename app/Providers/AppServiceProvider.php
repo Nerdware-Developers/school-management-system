@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 use App\Models\Menu;
 use View;
 
@@ -25,9 +27,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        View::composer('*', fn($view) => 
-            $view->with('menus', Menu::whereNull('parent_id')->where('is_active', true)->with('children')->orderBy('order')->get()
-            )
-        );
+        Paginator::useBootstrapFive();
+
+        View::composer('*', function ($view) {
+            static $menus;
+
+            if ($menus === null) {
+                $menus = collect();
+
+                try {
+                    DB::connection()->getPdo();
+
+                    $menus = Menu::whereNull('parent_id')
+                        ->where('is_active', true)
+                        ->with('children')
+                        ->orderBy('order')
+                        ->get();
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            $view->with('menus', $menus);
+        });
     }
 }
