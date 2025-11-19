@@ -122,6 +122,8 @@
                 serverSide: true,
                 ordering: true,
                 searching: true,
+                lengthMenu: [[10], [10]],
+                pageLength: 10,
                 ajax: {
                     url:"{{ route('get-data-list') }}",
                 },

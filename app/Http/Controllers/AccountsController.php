@@ -24,7 +24,8 @@ class AccountsController extends Controller
                 'students.class',
                 'students.image'
             )
-            ->get();
+            ->orderByDesc('fees_information.id')
+            ->paginate(5);
 
         return view('accounts.feescollections', compact('feesInformation'));
     }
@@ -83,15 +84,19 @@ class AccountsController extends Controller
 
         // 🔹 Update current term
         $currentTerm->amount_paid = $newTotalPaid;
-        $currentTerm->closing_balance = max(0, $newBalance);
-        if ($currentTerm->closing_balance <= 0) {
+        $currentTerm->closing_balance = $newBalance;
+        if ($currentTerm->closing_balance > 0) {
+            $currentTerm->status = 'current';
+        } elseif ($currentTerm->closing_balance < 0) {
+            $currentTerm->status = 'credit';
+        } else {
             $currentTerm->status = 'closed';
         }
         $currentTerm->save();
 
         // 🔹 Update student snapshot (for quick overview)
         $student->amount_paid = $newTotalPaid;
-        $student->balance     = $currentTerm->closing_balance;
+        $student->balance     = max($currentTerm->closing_balance, 0);
         $student->fee_amount  = $feeAmount;
         $student->financial_year = $currentTerm->academic_year;
         $student->save();
@@ -143,11 +148,15 @@ class AccountsController extends Controller
         $currentTerm = $student->feeTerms->firstWhere('status', 'current')
             ?? $student->feeTerms->first();
 
+        $credit = 0;
         if ($currentTerm) {
             // Use term-based finance
             $feePerTerm = (float) $currentTerm->fee_amount;
             $totalPaid  = (float) $currentTerm->amount_paid;
             $balance    = (float) $currentTerm->closing_balance;
+            if ($balance < 0) {
+                $credit = abs($balance);
+            }
         } else {
             // Fallback to legacy student-level amounts if no term exists
             $feePerTerm = (float) ($student->fee_amount ?? 0);
@@ -162,7 +171,8 @@ class AccountsController extends Controller
             'class'        => $student->class,
             'fee_per_term' => number_format($feePerTerm, 2),
             'total_paid'   => number_format($totalPaid, 2),
-            'balance'      => number_format($balance, 2),
+            'balance'      => number_format(max($balance, 0), 2),
+            'credit'       => number_format($credit, 2),
             'term_name'    => $currentTerm->term_name ?? null,
             'academic_year'=> $currentTerm->academic_year ?? null,
         ]);
