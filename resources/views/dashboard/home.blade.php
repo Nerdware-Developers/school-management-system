@@ -1,363 +1,271 @@
-
 @extends('layouts.master')
+
 @section('content')
-{{-- message --}}
-{!! Toastr::message() !!}
-<div class="page-wrapper">
-    <div class="content container-fluid">
-        <div class="page-header">
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="page-sub-header">
-                        <h3 class="page-title">Welcome {{ Session::get('name') }}!</h3>
-                        <ul class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
-                            <li class="breadcrumb-item active">{{ Session::get('name') }}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="page-wrapper" style="background-color: #f9f9ff; min-height: 100vh;">
+    <div class="container py-4">
+        <h4 class="fw-bold mb-4">Admin Dashboard</h4>
 
-        <div class="row">
-            <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                <div class="card bg-comman w-100">
-                    <div class="card-body">
-                        <div class="db-widgets d-flex justify-content-between align-items-center">
-                            <div class="db-info">
-                                <h6>Students</h6>
-                                <h3>{{ $totalStudents }}</h3>
-                            </div>
-                            <div class="db-icon">
-                                <img src="{{ URL::to('assets/img/icons/dash-icon-01.svg') }}" alt="Dashboard Icon">
-                            </div>
+        <!-- Top Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0" style="background-color:#f3e8ff; border-radius:15px;">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Students</h6>
+                            <h3 class="fw-bold">{{ $totalStudents }}</h3>
+                        </div>
+                        <div class="p-3 rounded-circle" style="background-color:#a855f7;">
+                            <i class="bi bi-mortarboard text-white fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                <div class="card bg-comman w-100">
-                    <div class="card-body">
-                        <div class="db-widgets d-flex justify-content-between align-items-center">
-                            <div class="db-info">
-                                <h6>Teachers</h6>
-                                <h3>{{ $totalTeachers }}</h3>
-                            </div>
-                            <div class="db-icon">
-                                <img src="{{ URL::to('assets/img/icons/dash-icon-02.svg') }}" alt="Dashboard Icon">
-                            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0" style="background-color:#e0f2fe; border-radius:15px;">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Teachers</h6>
+                            <h3 class="fw-bold">{{ $totalTeachers }}</h3>
+                        </div>
+                        <div class="p-3 rounded-circle" style="background-color:#3b82f6;">
+                            <i class="bi bi-person text-white fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                <div class="card bg-comman w-100">
-                    <div class="card-body">
-                        <div class="db-widgets d-flex justify-content-between align-items-center">
-                            <div class="db-info">
-                                <h6>Department</h6>
-                                <h3>{{ $totalDepartments }}</h3>
-                            </div>
-                            <div class="db-icon">
-                                <img src="{{ URL::to('assets/img/icons/dash-icon-03.svg') }}" alt="Dashboard Icon">
-                            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0" style="background-color:#ffedd5; border-radius:15px;">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Departments</h6>
+                            <h3 class="fw-bold">{{ $totalDepartments }}</h3>
+                        </div>
+                        <div class="p-3 rounded-circle" style="background-color:#fb923c;">
+                            <i class="bi bi-people text-white fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12 d-flex">
-                <div class="card bg-comman w-100">
-                    <div class="card-body">
-                        <div class="db-widgets d-flex justify-content-between align-items-center">
-                            <div class="db-info">
-                                <h6>Revenue</h6>
-                                <h3>$505</h3>
-                            </div>
-                            <div class="db-icon">
-                                <img src="{{ URL::to('assets/img/icons/dash-icon-04.svg') }}" alt="Dashboard Icon">
-                            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0" style="background-color:#dcfce7; border-radius:15px;">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Earnings</h6>
+                            <h4 class="fw-bold">Ksh{{ number_format($totalEarnings, 2) }}</h4>
+                        </div>
+                        <div class="p-3 rounded-circle" style="background-color:#22c55e;">
+                            <i class="bi bi-cash-coin text-white fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-12 col-lg-6">
+        <!-- Charts and Stats -->
+        <div class="row g-3 mb-4">
+            <!-- Exam Results Graph -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0" style="border-radius:15px;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold">All Exam Results</h6>
+                            <select class="form-select form-select-sm" style="width:auto;">
+                                <option>Monthly</option>
+                                <option>Yearly</option>
+                            </select>
+                        </div>
+                        <canvas id="examResultsChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
 
-                <div class="card card-chart">
-                    <div class="card-header">
-                        <div class="row align-items-center">
-                            <div class="col-6">
-                                <h5 class="card-title">Overview</h5>
-                            </div>
-                            <div class="col-6">
-                                <ul class="chart-list-out">
-                                    <li><span class="circle-blue"></span>Teacher</li>
-                                    <li><span class="circle-green"></span>Student</li>
-                                    <li class="star-menus"><a href="javascript:;"><i
-                                                class="fas fa-ellipsis-v"></i></a></li>
-                                </ul>
+            <!-- Students Gender Chart -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0" style="border-radius:15px;">
+                    <div class="card-body text-center position-relative">
+                        <h6 class="fw-bold mb-3 text-start">Students</h6>
+
+                        <!-- Two-layer doughnut chart -->
+                        <div class="position-relative d-flex justify-content-center align-items-center" style="height:220px;">
+                            <canvas id="studentsChart" width="220" height="220"></canvas>
+                            <div class="position-absolute">
+                                <h6 class="fw-bold text-secondary mb-0">Total</h6>
+                                <h4 class="fw-bold mb-0">{{ $totalStudents }}</h4>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="apexcharts-area"></div>
-                    </div>
-                </div>
 
-            </div>
-            <div class="col-md-12 col-lg-6">
-
-                <div class="card card-chart">
-                    <div class="card-header">
-                        <div class="row align-items-center">
-                            <div class="col-6">
-                                <h5 class="card-title">Number of Students</h5>
+                        <!-- Gender legend -->
+                        <div class="d-flex justify-content-center gap-4 mt-3">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="rounded-circle" style="width:10px; height:10px; background-color:#a855f7;"></span>
+                                <small>Male</small>
                             </div>
-                            <div class="col-6">
-                                <ul class="chart-list-out">
-                                    <li><span class="circle-blue"></span>Girls</li>
-                                    <li><span class="circle-green"></span>Boys</li>
-                                    <li class="star-menus"><a href="javascript:;"><i
-                                                class="fas fa-ellipsis-v"></i></a></li>
-                                </ul>
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="rounded-circle" style="width:10px; height:10px; background-color:#f59e0b;"></span>
+                                <small>Female</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="bar"></div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-6 d-flex">
-
-                <div class="card flex-fill student-space comman-shadow">
-                    <div class="card-header d-flex align-items-center">
-                        <h5 class="card-title">Star Students</h5>
-                        <ul class="chart-list-out student-ellips">
-                            <li class="star-menus"><a href="javascript:;"><i class="fas fa-ellipsis-v"></i></a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table
-                                class="table star-student table-hover table-center table-borderless table-striped">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Name</th>
-                                        <th class="text-center">Marks</th>
-                                        <th class="text-center">Percentage</th>
-                                        <th class="text-end">Year</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <div>PRE2209</div>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="profile.html">
-                                                <img class="rounded-circle"src="{{ URL::to('assets/img/profiles/avatar-01.jpg') }}" width="25" alt="Star Students"> Soeng Souy
-                                            </a>
-                                        </td>
-                                        <td class="text-center">1185</td>
-                                        <td class="text-center">98%</td>
-                                        <td class="text-end">
-                                            <div>2019</div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <div>PRE1245</div>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="profile.html">
-                                                <img class="rounded-circle"src="{{ URL::to('assets/img/profiles/avatar-01.jpg') }}" width="25" alt="Star Students"> Soeng Souy
-                                            </a>
-                                        </td>
-                                        <td class="text-center">1195</td>
-                                        <td class="text-center">99.5%</td>
-                                        <td class="text-end">
-                                            <div>2018</div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <div>PRE1625</div>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="profile.html">
-                                                <img class="rounded-circle"src="{{ URL::to('assets/img/profiles/avatar-01.jpg') }}" width="25" alt="Star Students"> Soeng Souy
-                                            </a>
-                                        </td>
-                                        <td class="text-center">1196</td>
-                                        <td class="text-center">99.6%</td>
-                                        <td class="text-end">
-                                            <div>2017</div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <div>PRE2516</div>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="profile.html">
-                                                <img class="rounded-circle"src="{{ URL::to('assets/img/profiles/avatar-01.jpg') }}" width="25" alt="Star Students"> Soeng Souy
-                                            </a>
-                                        </td>
-                                        <td class="text-center">1187</td>
-                                        <td class="text-center">98.2%</td>
-                                        <td class="text-end">
-                                            <div>2016</div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <div>PRE2209</div>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="profile.html">
-                                                <img class="rounded-circle"src="{{ URL::to('assets/img/profiles/avatar-01.jpg') }}" width="25" alt="Star Students"> Soeng Souy
-                                            </a>
-                                        </td>
-                                        <td class="text-center">1185</td>
-                                        <td class="text-center">98%</td>
-                                        <td class="text-end">
-                                            <div>2015</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            <div class="col-xl-6 d-flex">
-
-                <div class="card flex-fill comman-shadow">
-                    <div class="card-header d-flex align-items-center">
-                        <h5 class="card-title ">Student Activity </h5>
-                        <ul class="chart-list-out student-ellips">
-                            <li class="star-menus"><a href="javascript:;"><i class="fas fa-ellipsis-v"></i></a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-groups">
-                            <div class="activity-awards">
-                                <div class="award-boxs">
-                                    <img src="assets/img/icons/award-icon-01.svg" alt="Award">
-                                </div>
-                                <div class="award-list-outs">
-                                    <h4>1st place in "Chess”</h4>
-                                    <h5>John Doe won 1st place in "Chess"</h5>
-                                </div>
-                                <div class="award-time-list">
-                                    <span>1 Day ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-awards">
-                                <div class="award-boxs">
-                                    <img src="assets/img/icons/award-icon-02.svg" alt="Award">
-                                </div>
-                                <div class="award-list-outs">
-                                    <h4>Participated in "Carrom"</h4>
-                                    <h5>Justin Lee participated in "Carrom"</h5>
-                                </div>
-                                <div class="award-time-list">
-                                    <span>2 hours ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-awards">
-                                <div class="award-boxs">
-                                    <img src="assets/img/icons/award-icon-03.svg" alt="Award">
-                                </div>
-                                <div class="award-list-outs">
-                                    <h4>Internation conference in "St.John School"</h4>
-                                    <h5>Justin Leeattended internation conference in "St.John School"</h5>
-                                </div>
-                                <div class="award-time-list">
-                                    <span>2 Week ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-awards mb-0">
-                                <div class="award-boxs">
-                                    <img src="assets/img/icons/award-icon-04.svg" alt="Award">
-                                </div>
-                                <div class="award-list-outs">
-                                    <h4>Won 1st place in "Chess"</h4>
-                                    <h5>John Doe won 1st place in "Chess"</h5>
-                                </div>
-                                <div class="award-time-list">
-                                    <span>3 Day ago</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card flex-fill fb sm-box">
-                    <div class="social-likes">
-                        <p>Like us on facebook</p>
-                        <h6>50,095</h6>
-                    </div>
-                    <div class="social-boxs">
-                        <img src="assets/img/icons/social-icon-01.svg" alt="Social Icon">
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card flex-fill twitter sm-box">
-                    <div class="social-likes">
-                        <p>Follow us on twitter</p>
-                        <h6>48,596</h6>
-                    </div>
-                    <div class="social-boxs">
-                        <img src="assets/img/icons/social-icon-02.svg" alt="Social Icon">
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card flex-fill insta sm-box">
-                    <div class="social-likes">
-                        <p>Follow us on instagram</p>
-                        <h6>52,085</h6>
-                    </div>
-                    <div class="social-boxs">
-                        <img src="assets/img/icons/social-icon-03.svg" alt="Social Icon">
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card flex-fill linkedin sm-box">
-                    <div class="social-likes">
-                        <p>Follow us on linkedin</p>
-                        <h6>69,050</h6>
-                    </div>
-                    <div class="social-boxs">
-                        <img src="assets/img/icons/social-icon-04.svg" alt="Social Icon">
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Star Students + Notifications -->
+        <div class="row g-3">
+            <!-- Star Students Table -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0" style="border-radius:15px;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Star Students</h6>
+                        <table class="table table-borderless align-middle">
+                            <thead>
+                                <tr class="text-muted">
+                                    <th>Name</th>
+                                    <th>ID</th>
+                                    <th>Marks</th>
+                                    <th>Percent</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><img src="https://i.pravatar.cc/40?img=1" class="rounded-circle me-2" width="35"> Evelyn Harper</td>
+                                    <td>PRE43178</td>
+                                    <td>1185</td>
+                                    <td>98%</td>
+                                    <td>2014</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://i.pravatar.cc/40?img=2" class="rounded-circle me-2" width="35"> Diana Plenty</td>
+                                    <td>PRE43174</td>
+                                    <td>1165</td>
+                                    <td>91%</td>
+                                    <td>2014</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://i.pravatar.cc/40?img=3" class="rounded-circle me-2" width="35"> John Millar</td>
+                                    <td>PRE43187</td>
+                                    <td>1175</td>
+                                    <td>92%</td>
+                                    <td>2014</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0" style="border-radius:15px;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">All Exam Results</h6>
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="p-2 bg-primary bg-opacity-25 rounded-circle me-3">
+                                <i class="bi bi-person-plus text-primary fs-5"></i>
+                            </div>
+                            <div>
+                                <p class="mb-0 fw-semibold">New Teacher</p>
+                                <small class="text-muted">Just now</small>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="p-2 bg-warning bg-opacity-25 rounded-circle me-3">
+                                <i class="bi bi-receipt text-warning fs-5"></i>
+                            </div>
+                            <div>
+                                <p class="mb-0 fw-semibold">Fees Structure</p>
+                                <small class="text-muted">Today</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="p-2 bg-success bg-opacity-25 rounded-circle me-3">
+                                <i class="bi bi-book text-success fs-5"></i>
+                            </div>
+                            <div>
+                                <p class="mb-0 fw-semibold">New Course</p>
+                                <small class="text-muted">24 Sep 2023</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> 
 </div>
-@section('scripts')
-<script src="{{ asset('assets/plugins/apexchart/apexcharts.min.js') }}"></script>
-<script src="{{ asset('assets/plugins/apexchart/chart-data.js') }}"></script>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const examResultsCtx = document.getElementById('examResultsChart').getContext('2d');
+new Chart(examResultsCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+            {
+                label: 'Teachers',
+                data: [50000, 40000, 60000, 55000, 70000, 75000, 50000],
+                borderColor: '#a855f7',
+                fill: false,
+                tension: 0.4
+            },
+            {
+                label: 'Students',
+                data: [40000, 55000, 45000, 60000, 65000, 70000, 45000],
+                borderColor: '#3b82f6',
+                fill: false,
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
 
+const ctx = document.getElementById('studentsChart').getContext('2d');
 
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Male', 'Female'],
+        datasets: [
+            {
+                label: 'Male',
+                data: [9000, 10000], // outer ring
+                backgroundColor: ['#a855f7', '#e9d5ff'], // purple + light background
+                cutout: '70%',
+                radius: '100%',
+                borderWidth: 0,
+            },
+            {
+                label: 'Female',
+                data: [8000, 10000], // inner ring
+                backgroundColor: ['#f59e0b', '#fef3c7'], // orange + light background
+                cutout: '50%',
+                radius: '100%',
+                borderWidth: 0,
+            }
+        ]
+    },
+    options: {
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+        },
+        rotation: -Math.PI / 2,
+        circumference: 360,
+    }
+});
+</script>
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 @endsection

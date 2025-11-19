@@ -42,16 +42,10 @@
                                                 <div class="student-box flex-fill">
                                                     <div class="student-img">
                                                         <a href="{{ url('student/profile/'.$list->id) }}">
-                                                            @php
-                                                                $photoPath = $list->upload 
-                                                                    ? asset('storage/student-photos/' . $list->upload) 
-                                                                    : asset('assets/img/profiles/default.png');
-                                                            @endphp
                                                             <img class="img-fluid rounded-circle"
                                                                 alt="{{ $list->first_name }}"
-                                                                src="{{ $list->upload ? asset('storage/student-photos/' . $list->upload) : asset('assets/img/profiles/default.png') }}"
+                                                                src="{{ $list->image ? route('student.photo', $list->image) : asset('images/photo_defaults.jpg') }}"
                                                                 style="width:120px; height:120px; object-fit:cover;">
-
                                                         </a>
                                                     </div>
                                                     <div class="student-content pb-0">

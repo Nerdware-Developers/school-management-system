@@ -170,6 +170,81 @@
                                         @enderror
                                     </div>
                                 </div>
+                                
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Class Teacher Information</span></h5>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group local-forms">
+                                        <label>Is Class Teacher?</label>
+                                        <select class="form-control select" name="is_class_teacher" id="is_class_teacher">
+                                            <option value="no" {{ old('is_class_teacher') == 'no' ? 'selected' : '' }}>No</option>
+                                            <option value="yes" {{ old('is_class_teacher') == 'yes' ? 'selected' : '' }}>Yes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6" id="class_teacher_section" style="display: none;">
+                                    <div class="form-group local-forms">
+                                        <label>Class <span class="login-danger">*</span></label>
+                                        <select class="form-control select @error('class_teacher_id') is-invalid @enderror" name="class_teacher_id" id="class_teacher_id">
+                                            <option value="">Select Class</option>
+                                            @foreach($classes as $class)
+                                                <option value="{{ $class->id }}" {{ old('class_teacher_id') == $class->id ? 'selected' : '' }}>
+                                                    {{ $class->class_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('class_teacher_id')
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
+                                        @enderror
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Subject & Class Assignments</span></h5>
+                                </div>
+                                <div class="col-12">
+                                    <div id="subject_class_container">
+                                        <div class="subject-class-row mb-3" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                                            <div class="row">
+                                                <div class="col-12 col-sm-5">
+                                                    <div class="form-group local-forms">
+                                                        <label>Subject <span class="login-danger">*</span></label>
+                                                        <select class="form-control select subject-select" name="subject_class[0][subject_id]" required>
+                                                            <option value="">Select Subject</option>
+                                                            @foreach($subjects as $subject)
+                                                                <option value="{{ $subject->id }}">{{ $subject->subject_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-5">
+                                                    <div class="form-group local-forms">
+                                                        <label>Class <span class="login-danger">*</span></label>
+                                                        <select class="form-control select class-select" name="subject_class[0][class_id]" required>
+                                                            <option value="">Select Class</option>
+                                                            @foreach($classes as $class)
+                                                                <option value="{{ $class->id }}">{{ $class->class_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-2">
+                                                    <div class="form-group local-forms">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" class="btn btn-danger btn-block remove-row" style="display: none;">Remove</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-success" id="add_subject_class_row">
+                                        <i class="fas fa-plus"></i> Add Another Subject-Class
+                                    </button>
+                                </div>
+
                                 <div class="col-12">
                                     <div class="student-submit">
                                         <button type="submit" class="btn btn-primary">Submit</button>
@@ -185,11 +260,92 @@
 </div>
 @section('script')
 <script>
+    // Prepare subject and class options for dynamic rows
+    const subjectOptions = `@foreach($subjects as $subject)<option value="{{ $subject->id }}">{{ $subject->subject_name }}</option>@endforeach`;
+    const classOptions = `@foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->class_name }}</option>@endforeach`;
+
     // select auto teacher id
     $('#full_name').on('change',function()
     {
         $('#teacher_id').val($(this).find(':selected').data('teacher_id'));
     });
+
+    // Show/hide class teacher section
+    $('#is_class_teacher').on('change', function() {
+        if ($(this).val() === 'yes') {
+            $('#class_teacher_section').show();
+            $('#class_teacher_id').prop('required', true);
+        } else {
+            $('#class_teacher_section').hide();
+            $('#class_teacher_id').prop('required', false);
+            $('#class_teacher_id').val('');
+        }
+    });
+
+    // Trigger on page load if value is already set
+    if ($('#is_class_teacher').val() === 'yes') {
+        $('#class_teacher_section').show();
+        $('#class_teacher_id').prop('required', true);
+    }
+
+    // Add new subject-class row
+    let rowCount = 1;
+    $('#add_subject_class_row').on('click', function() {
+        const newRow = `
+            <div class="subject-class-row mb-3" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                <div class="row">
+                    <div class="col-12 col-sm-5">
+                        <div class="form-group local-forms">
+                            <label>Subject <span class="login-danger">*</span></label>
+                            <select class="form-control select subject-select" name="subject_class[${rowCount}][subject_id]" required>
+                                <option value="">Select Subject</option>
+                                ${subjectOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-5">
+                        <div class="form-group local-forms">
+                            <label>Class <span class="login-danger">*</span></label>
+                            <select class="form-control select class-select" name="subject_class[${rowCount}][class_id]" required>
+                                <option value="">Select Class</option>
+                                ${classOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-2">
+                        <div class="form-group local-forms">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-block remove-row">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#subject_class_container').append(newRow);
+        rowCount++;
+        
+        // Show remove buttons if there's more than one row
+        updateRemoveButtons();
+    });
+
+    // Remove subject-class row
+    $(document).on('click', '.remove-row', function() {
+        $(this).closest('.subject-class-row').remove();
+        updateRemoveButtons();
+    });
+
+    // Update remove buttons visibility
+    function updateRemoveButtons() {
+        const rows = $('.subject-class-row');
+        if (rows.length > 1) {
+            $('.remove-row').show();
+        } else {
+            $('.remove-row').hide();
+        }
+    }
+
+    // Initialize remove buttons on page load
+    updateRemoveButtons();
 </script>
 @endsection
 @endsection

@@ -3,58 +3,89 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use DB;
 use App\Models\Subject;
-
 use Brian2694\Toastr\Facades\Toastr;
+use App\Models\Teacher;
+use App\Models\Classe;
 
 class SubjectController extends Controller
 {
     /** index page */
     public function subjectList()
     {
-        $subjectList = Subject::all();
+        $subjectList = Subject::orderBy('subject_id', 'desc')->paginate(10);
         return view('subjects.subject_list',compact('subjectList'));
     }
 
     /** subject add */
     public function subjectAdd()
-    {
-        return view('subjects.subject_add');
-    }
+{
+    $teachers = Teacher::all();
+    $classes = Classe::all();
+
+    return view('subjects.subject_add', compact('teachers', 'classes'));
+}
+
 
     /** save record */
     public function saveRecord(Request $request)
     {
-        $request->validate([
-            'subject_name' => 'required|string',
-            'class'        => 'required|string',
-        ]);
-        
         DB::beginTransaction();
         try {
-                $saveRecord = new Subject;
-                $saveRecord->subject_name   = $request->subject_name;
-                $saveRecord->class          = $request->class;
-                $saveRecord->save();
+            $request->validate([
+                'subject_name' => 'required|string|max:255',
+                'teacher_name' => 'required|string|max:255',
+                'class' => 'required|string|max:255',
+            ], [
+                'subject_name.required' => 'Subject name is required',
+                'teacher_name.required' => 'Teacher name is required',
+                'class.required' => 'Class is required',
+            ]);
 
-                Toastr::success('Has been add successfully :)','Success');
-                DB::commit();
+            $duplicate = Subject::where('class', $request->class)
+                ->where('subject_name', $request->subject_name)
+                ->exists();
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'subject_name' => ['This subject is already assigned to that class. Please choose another combination.'],
+                ]);
+            }
+
+            Subject::create([
+                'subject_name'  => $request->subject_name,
+                'teacher_name'  => $request->teacher_name,
+                'class'         => $request->class,  
+            ]);
+
+            Toastr::success('Subject added successfully :)','Success');
+            DB::commit();
             return redirect()->back();
-           
+            
+        } catch(ValidationException $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch(\Exception $e) {
             \Log::info($e);
             DB::rollback();
-            Toastr::error('fail, Add new record:)','Error');
+            Toastr::error('Fail, add subject :)','Error');
             return redirect()->back();
         }
     }
+
+
 
     /** subject edit view */
     public function subjectEdit($subject_id)
     {
         $subjectEdit = Subject::where('subject_id',$subject_id)->first();
-        return view('subjects.subject_edit',compact('subjectEdit'));
+        $teachers = Teacher::all();
+        $classes = Classe::all();
+        return view('subjects.subject_edit',compact('subjectEdit', 'teachers', 'classes'));
     }
 
     /** update record */
@@ -62,9 +93,30 @@ class SubjectController extends Controller
     {
         DB::beginTransaction();
         try {
+            $request->validate([
+                'subject_name' => 'required|string|max:255',
+                'teacher_name' => 'required|string|max:255',
+                'class' => 'required|string|max:255',
+            ], [
+                'subject_name.required' => 'Subject name is required',
+                'teacher_name.required' => 'Teacher name is required',
+                'class.required' => 'Class is required',
+            ]);
+
+            $duplicate = Subject::where('class', $request->class)
+                ->where('subject_name', $request->subject_name)
+                ->where('subject_id', '!=', $request->subject_id)
+                ->exists();
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'subject_name' => ['Another teacher already handles this subject for the same class.'],
+                ]);
+            }
             
             $updateRecord = [
                 'subject_name' => $request->subject_name,
+                'teacher_name' => $request->teacher_name,
                 'class'        => $request->class,
             ];
 
@@ -73,6 +125,11 @@ class SubjectController extends Controller
             DB::commit();
             return redirect()->back();
            
+        } catch(ValidationException $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch(\Exception $e) {
             \Log::info($e);
             DB::rollback();

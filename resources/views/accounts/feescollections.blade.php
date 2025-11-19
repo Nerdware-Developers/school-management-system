@@ -40,12 +40,11 @@
 
                             <div class="table-responsive">
                                 <table
-                                    class="table border-0 star-student table-hover table-center mb-0 datatable table-striped">
+                                    class="table border-0 star-student table-hover table-center mb-0 table-striped">
                                     <thead class="student-thread">
                                         <tr>
-                                            <th>ID</th>
+                                            <th>ADM</th>
                                             <th>Name</th>
-                                            <th>Gender</th>
                                             <th>Fees Type</th>
                                             <th>Amount</th>
                                             <th>Paid Date</th>
@@ -55,16 +54,18 @@
                                     <tbody>
                                         @foreach($feesInformation as $key => $value)
                                             <tr>
-                                                <td>ST-{{ $value->student_id }}</td>
+                                                <td>{{ $value->admission_number }}</td>
                                                 <td>
                                                     <h2 class="table-avatar">
                                                         <a class="avatar avatar-sm me-2">
-                                                            <img class="avatar-img rounded-circle"src="{{ URL::to('/images/'. $value->avatar) }}"alt="{{ $value->student_name }}">
+                                                            <img class="avatar-img rounded-circle" 
+                                                            src="{{ !empty($value->image) ? route('student.photo', $value->image) : asset('images/photo_defaults.jpg') }}" 
+                                                            alt="{{ $value->student_name }}">
+
                                                         </a>
                                                         <a>{{ $value->student_name }}</a>
                                                     </h2>
                                                 </td>
-                                                <td>{{ $value->gender }}</td>
                                                 <td>{{ $value->fees_type }}</td>
                                                 <td>Ksh{{ $value->fees_amount }}</td>
                                                 <td>{{ $value->paid_date }}</td>
@@ -75,6 +76,9 @@
                                         @endforeach
                                     </tbody>
                                 </table>
+                                <div class="d-flex justify-content-end mt-3">
+                                    {{ $feesInformation->links() }}
+                                </div>
                             </div>
                         </div>
                     </div>
