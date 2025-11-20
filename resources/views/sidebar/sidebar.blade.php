@@ -152,9 +152,10 @@
                     <span>Main Menu</span>
                 </li>
                 @foreach ($menus as $menu)
-                    <li class="submenu {{ set_active($menu->active_routes) }} 
+                    <li class="{{ $menu->children->count() > 0 ? 'submenu' : '' }} {{ set_active($menu->active_routes) }} 
                         {{ (isset($menu->pattern) && request()->is($menu->pattern)) ? 'active' : '' }}">
-                        <a href="{{ $menu->route ? route($menu->route) : '#' }}">
+                        <a href="{{ $menu->route ? route($menu->route) : '#' }}" 
+                           @if($menu->children->count() == 0) class="not-submenu" @endif>
                             <i class="{{ $menu->icon }}"></i>
                             <span>{{ $menu->title }}</span>
                             @if ($menu->children->count())

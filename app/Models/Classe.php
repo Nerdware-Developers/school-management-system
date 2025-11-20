@@ -31,5 +31,21 @@ class Classe extends Model
                     ->withPivot('subject_id')
                     ->withTimestamps();
     }
+
+    /**
+     * Timetables for this class
+     */
+    public function timetables()
+    {
+        return $this->hasMany(Timetable::class, 'class_id');
+    }
+
+    /**
+     * Attendance records for this class
+     */
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class, 'class_id');
+    }
 }
 

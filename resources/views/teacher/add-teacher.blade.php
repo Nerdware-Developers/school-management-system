@@ -170,6 +170,18 @@
                                         @enderror
                                     </div>
                                 </div>
+                                <div class="col-12 col-sm-4">
+                                    <div class="form-group local-forms">
+                                        <label>Monthly Salary (Ksh)</label>
+                                        <input type="number" step="0.01" class="form-control @error('monthly_salary') is-invalid @enderror" 
+                                               name="monthly_salary" placeholder="0.00" value="{{ old('monthly_salary') }}">
+                                        @error('monthly_salary')
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
+                                        @enderror
+                                    </div>
+                                </div>
                                 
                                 <div class="col-12">
                                     <h5 class="form-title"><span>Class Teacher Information</span></h5>
@@ -203,7 +215,8 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <h5 class="form-title"><span>Subject & Class Assignments</span></h5>
+                                    <h5 class="form-title"><span>Subject & Class Assignments (Optional)</span></h5>
+                                    <p class="text-muted small">You can assign subjects to this teacher later if needed.</p>
                                 </div>
                                 <div class="col-12">
                                     <div id="subject_class_container">
@@ -211,9 +224,9 @@
                                             <div class="row">
                                                 <div class="col-12 col-sm-5">
                                                     <div class="form-group local-forms">
-                                                        <label>Subject <span class="login-danger">*</span></label>
-                                                        <select class="form-control select subject-select" name="subject_class[0][subject_id]" required>
-                                                            <option value="">Select Subject</option>
+                                                        <label>Subject</label>
+                                                        <select class="form-control select subject-select" name="subject_class[0][subject_id]">
+                                                            <option value="">Select Subject (Optional)</option>
                                                             @foreach($subjects as $subject)
                                                                 <option value="{{ $subject->id }}">{{ $subject->subject_name }}</option>
                                                             @endforeach
@@ -222,9 +235,9 @@
                                                 </div>
                                                 <div class="col-12 col-sm-5">
                                                     <div class="form-group local-forms">
-                                                        <label>Class <span class="login-danger">*</span></label>
-                                                        <select class="form-control select class-select" name="subject_class[0][class_id]" required>
-                                                            <option value="">Select Class</option>
+                                                        <label>Class</label>
+                                                        <select class="form-control select class-select" name="subject_class[0][class_id]">
+                                                            <option value="">Select Class (Optional)</option>
                                                             @foreach($classes as $class)
                                                                 <option value="{{ $class->id }}">{{ $class->class_name }}</option>
                                                             @endforeach
@@ -296,18 +309,18 @@
                 <div class="row">
                     <div class="col-12 col-sm-5">
                         <div class="form-group local-forms">
-                            <label>Subject <span class="login-danger">*</span></label>
-                            <select class="form-control select subject-select" name="subject_class[${rowCount}][subject_id]" required>
-                                <option value="">Select Subject</option>
+                            <label>Subject</label>
+                            <select class="form-control select subject-select" name="subject_class[${rowCount}][subject_id]">
+                                <option value="">Select Subject (Optional)</option>
                                 ${subjectOptions}
                             </select>
                         </div>
                     </div>
                     <div class="col-12 col-sm-5">
                         <div class="form-group local-forms">
-                            <label>Class <span class="login-danger">*</span></label>
-                            <select class="form-control select class-select" name="subject_class[${rowCount}][class_id]" required>
-                                <option value="">Select Class</option>
+                            <label>Class</label>
+                            <select class="form-control select class-select" name="subject_class[${rowCount}][class_id]">
+                                <option value="">Select Class (Optional)</option>
                                 ${classOptions}
                             </select>
                         </div>

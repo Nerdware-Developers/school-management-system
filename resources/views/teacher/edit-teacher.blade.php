@@ -167,6 +167,18 @@
                                         @enderror
                                     </div>
                                 </div>
+                                <div class="col-12 col-sm-4">
+                                    <div class="form-group local-forms">
+                                        <label>Monthly Salary (Ksh)</label>
+                                        <input type="number" step="0.01" class="form-control @error('monthly_salary') is-invalid @enderror" 
+                                               name="monthly_salary" placeholder="0.00" value="{{ old('monthly_salary', $teacher->monthly_salary) }}">
+                                        @error('monthly_salary')
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
+                                        @enderror
+                                    </div>
+                                </div>
                                 <div class="col-12">
                                     <div class="student-submit">
                                         <button type="submit" class="btn btn-primary">Submit</button>

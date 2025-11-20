@@ -23,7 +23,12 @@ class Teacher extends Model
         'state',
         'zip_code',
         'country',
+        'monthly_salary',
         'class_teacher_id',
+    ];
+
+    protected $casts = [
+        'monthly_salary' => 'decimal:2',
     ];
 
     /**

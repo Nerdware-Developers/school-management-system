@@ -108,7 +108,8 @@ class AccountsController extends Controller
 
     } catch (\Exception $e) {
         DB::rollback();
-        Toastr::error('Failed to record payment: ' . $e->getMessage(), 'Error');
+        \Log::error('Payment record failed: ' . $e->getMessage());
+        Toastr::error('Failed to record payment. Please try again.', 'Error');
         return redirect()->back()->withInput();
     }
 }
@@ -117,6 +118,10 @@ class AccountsController extends Controller
     /** Student search for Select2 */
     public function search(Request $request)
     {
+        $request->validate([
+            'term' => 'nullable|string|max:255',
+        ]);
+        
         $term = $request->get('term', '');
 
         $students = Student::where('first_name', 'LIKE', "%{$term}%")
@@ -140,6 +145,14 @@ class AccountsController extends Controller
     public function getFeesInfo($id)
 {
     try {
+        // Validate ID parameter
+        if (!is_numeric($id) || $id <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid student ID.'
+            ], 400);
+        }
+        
         // Fetch student with term data
         $student = Student::with(['feeTerms' => function ($q) {
             $q->orderByDesc('created_at');

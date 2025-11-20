@@ -93,36 +93,10 @@
                                         <td hidden>{{ $list->user_id }}</td>
                                         <td>{{ $list->user_id }}</td>
                                         <td>{{ $list->full_name }}</td>
-                                        <td>
-                                            @php $teachingClasses = $list->teaching_classes; @endphp
-                                            @if($teachingClasses->isNotEmpty())
-                                                @foreach ($teachingClasses as $className)
-                                                    <span class="badge bg-light text-dark border me-1 mb-1">{{ $className }}</span>
-                                                @endforeach
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $list->gender ?? '—' }}</td>
-                                        <td>
-                                            @php $subjectSummary = $list->teaching_summary; @endphp
-                                            @if($subjectSummary->isNotEmpty())
-                                                <ul class="list-unstyled mb-0">
-                                                    @foreach ($subjectSummary as $summary)
-                                                        <li>{{ $summary }}</li>
-                                                    @endforeach
-                                                </ul>
-                                            @else
-                                                <span class="text-muted">No subjects assigned</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($list->classTeacher)
-                                                {{ $list->classTeacher->class_name ?? '—' }}
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
+                                        <td>10</td>
+                                        <td>{{ $list->gender }}</td>
+                                        <td>Mathematics</td>
+                                        <td>A</td>
                                         <td>{{ $list->phone_number }}</td>
                                         <td>{{ $list->address }}</td>
                                         <td class="text-end">

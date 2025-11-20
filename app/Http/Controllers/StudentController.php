@@ -9,6 +9,7 @@ use App\Models\FeesInformation;
 use Illuminate\Http\Request;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class StudentController extends Controller
 {
@@ -97,7 +98,7 @@ class StudentController extends Controller
             'class'             => 'required|string|max:100',
             'admission_number'  => 'required|string|unique:students,admission_number',
             'address'           => 'nullable|string|max:255',
-            'image'             => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,bmp,tiff,svg|max:5120',
+            'image'             => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,bmp,tiff|max:5120',
 
             // 👨‍👩‍👧 Parent Information
             'parent_name'       => 'nullable|string|max:255',
@@ -160,9 +161,12 @@ class StudentController extends Controller
 
             if ($request->hasFile('image')) {
                 $file = $request->file('image');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $file->storeAs('public/student-photos', $fileName);
-                $student->image = $fileName;
+                // Sanitize filename to prevent path traversal
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $safeName = \Str::slug($originalName) . '_' . time() . '.' . $extension;
+                $file->storeAs('public/student-photos', $safeName);
+                $student->image = $safeName;
             }
 
             $feeAmount = (float) $request->input('fee_amount', 0);
@@ -177,9 +181,9 @@ class StudentController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
-            report($e);
-            Toastr::error('Failed to add student!', 'Error');
-            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+            \Log::error('Student save failed: ' . $e->getMessage());
+            Toastr::error('Failed to add student. Please try again.', 'Error');
+            return redirect()->back();
         }
 
     }
@@ -189,7 +193,11 @@ class StudentController extends Controller
     /** view for edit student */
     public function studentEdit($id)
     {
-        $studentEdit = Student::where('id',$id)->first();
+        if (!is_numeric($id) || $id <= 0) {
+            abort(404, 'Student not found');
+        }
+        
+        $studentEdit = Student::findOrFail($id);
         return view('student.edit-student',compact('studentEdit'));
     }
 
@@ -203,14 +211,21 @@ class StudentController extends Controller
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if (!empty($student->image) && file_exists(storage_path('app/public/student-photos/'.$student->image))) {
-                unlink(storage_path('app/public/student-photos/'.$student->image));
+            // Delete old image if exists (safely)
+            if (!empty($student->image)) {
+                $oldFileName = basename($student->image); // Prevent path traversal
+                $oldPath = storage_path('app/public/student-photos/' . $oldFileName);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
             }
 
-            // Save new image
-            $fileName = time() . '_' . $request->file('image')->getClientOriginalName();
-            $request->file('image')->storeAs('public/student-photos', $fileName);
+            // Save new image with sanitized filename
+            $file = $request->file('image');
+            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $extension = $file->getClientOriginalExtension();
+            $fileName = \Str::slug($originalName) . '_' . time() . '.' . $extension;
+            $file->storeAs('public/student-photos', $fileName);
         } else {
             $fileName = $request->image_hidden; // keep the old image
         }
@@ -238,31 +253,45 @@ class StudentController extends Controller
         Toastr::success('Student has been updated successfully!', 'Success');
         return redirect()->back();
 
-    } catch (\Exception $e) {
-        DB::rollback();
-        Toastr::error('Failed to update student: '.$e->getMessage(), 'Error');
-        return redirect()->back();
-    }
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Student update failed: ' . $e->getMessage());
+            Toastr::error('Failed to update student. Please try again.', 'Error');
+            return redirect()->back();
+        }
 }
 
 
     /** student delete */
     public function studentDelete(Request $request)
     {
+        $request->validate([
+            'id' => 'required|exists:students,id',
+            'avatar' => 'nullable|string|max:255',
+        ]);
+
         DB::beginTransaction();
         try {
-           
-            if (!empty($request->id)) {
-                Student::destroy($request->id);
-                unlink(storage_path('app/public/student-photos/'.$request->avatar));
-                DB::commit();
-                Toastr::success('Student deleted successfully :)','Success');
-                return redirect()->back();
+            $student = Student::findOrFail($request->id);
+            
+            // Safely delete image file
+            if (!empty($request->avatar)) {
+                $avatarFileName = basename($request->avatar); // Prevent path traversal
+                $avatarPath = storage_path('app/public/student-photos/' . $avatarFileName);
+                if (file_exists($avatarPath) && is_file($avatarPath)) {
+                    unlink($avatarPath);
+                }
             }
+            
+            $student->delete();
+            DB::commit();
+            Toastr::success('Student deleted successfully :)','Success');
+            return redirect()->back();
     
         } catch(\Exception $e) {
             DB::rollback();
-            Toastr::error('Student deleted fail :)','Error');
+            \Log::error('Student delete failed: ' . $e->getMessage());
+            Toastr::error('Failed to delete student. Please try again.','Error');
             return redirect()->back();
         }
     }
@@ -270,6 +299,10 @@ class StudentController extends Controller
     /** student profile page */
     public function studentProfile($id)
     {
+        if (!is_numeric($id) || $id <= 0) {
+            abort(404, 'Student not found');
+        }
+        
         $studentProfile = Student::with(['feeTerms' => function ($query) {
             $query->orderByDesc('created_at');
         }])->findOrFail($id);

@@ -29,9 +29,9 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="form-group local-forms">
-                                            <label>Teacher Name <span class="login-danger">*</span></label>
+                                            <label>Teacher Name</label>
                                             <select class="form-control @error('teacher_name') is-invalid @enderror" name="teacher_name">
-                                                <option value="">Select Teacher</option>
+                                                <option value="">Select Teacher (Optional)</option>
                                                 @foreach($teachers as $teacher)
                                                     <option value="{{ $teacher->full_name }}" {{ old('teacher_name') == $teacher->full_name ? 'selected' : '' }}>{{ $teacher->full_name }}</option>
                                                 @endforeach
@@ -41,6 +41,7 @@
                                                     <strong>{{ $message }}</strong>
                                                 </span>
                                             @enderror
+                                            <small class="text-muted">You can assign a teacher later</small>
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-4">

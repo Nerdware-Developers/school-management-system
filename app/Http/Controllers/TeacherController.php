@@ -6,12 +6,11 @@ use Illuminate\Http\Request;
 use DB;
 use Hash;
 use Carbon\Carbon;
-use Illuminate\Validation\ValidationException;
 use App\Models\User;
 use App\Models\Teacher;
 use App\Models\Classe;
 use App\Models\Subject;
-use App\Models\TeacherSubjectClass;
+use App\Models\SalaryPayment;
 use Brian2694\Toastr\Facades\Toastr;
 
 class TeacherController extends Controller
@@ -27,17 +26,19 @@ class TeacherController extends Controller
 
     /** teacher list */
     public function teacherList()
-    {
-        $listTeacher = Teacher::with([
-                'classTeacher:id,class_name',
-                'teachingAssignments.subject:id,subject_name',
-                'teachingAssignments.class:id,class_name',
-            ])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
+{
+    $listTeacher = Teacher::orderBy('id', 'desc')->paginate(10);
+    return view('teacher.list-teachers', compact('listTeacher'));
+}
 
-        return view('teacher.list-teachers', compact('listTeacher'));
-    }
+    /** teacher profiles list */
+    public function teacherProfiles()
+{
+    $teachers = Teacher::with(['classTeacher', 'teachingAssignments.subject', 'teachingAssignments.class'])
+        ->orderBy('id', 'desc')
+        ->paginate(12);
+    return view('teacher.teacher-profiles', compact('teachers'));
+}
 
 
 
@@ -97,41 +98,13 @@ class TeacherController extends Controller
             $teacher->save();
 
             // Save subject-class assignments
-            $assignments = collect($request->input('subject_class', []))
-                ->filter(function ($assignment) {
-                    return !empty($assignment['subject_id']) && !empty($assignment['class_id']);
-                });
-
-            if ($assignments->isNotEmpty()) {
-                $duplicates = $assignments
-                    ->map(fn ($assignment) => $assignment['subject_id'].'-'.$assignment['class_id'])
-                    ->duplicates();
-
-                if ($duplicates->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'subject_class' => ['A subject can only be assigned once per class. Please remove duplicate entries.'],
-                    ]);
-                }
-
-                foreach ($assignments as $assignment) {
-                    $conflict = TeacherSubjectClass::where('subject_id', $assignment['subject_id'])
-                        ->where('class_id', $assignment['class_id'])
-                        ->exists();
-
-                    if ($conflict) {
-                        $subjectName = Subject::find($assignment['subject_id'])->subject_name ?? 'Subject';
-                        $className = Classe::find($assignment['class_id'])->class_name ?? 'class';
-
-                        throw ValidationException::withMessages([
-                            'subject_class' => ["{$subjectName} ({$className}) already has an assigned teacher."]
+            if ($request->has('subject_class') && is_array($request->subject_class)) {
+                foreach ($request->subject_class as $assignment) {
+                    if (!empty($assignment['subject_id']) && !empty($assignment['class_id'])) {
+                        $teacher->subjectClasses()->attach($assignment['class_id'], [
+                            'subject_id' => $assignment['subject_id']
                         ]);
                     }
-                }
-
-                foreach ($assignments as $assignment) {
-                    $teacher->subjectClasses()->attach($assignment['class_id'], [
-                        'subject_id' => $assignment['subject_id']
-                    ]);
                 }
             }
 
@@ -207,6 +180,61 @@ class TeacherController extends Controller
             Toastr::error('Deleted record fail :)','Error');
             return redirect()->back();
         }
+    }
+
+    /** teacher profile */
+    public function teacherProfile($id)
+    {
+        $teacher = Teacher::with(['classTeacher', 'subjectClasses', 'teachingAssignments.subject', 'teachingAssignments.class'])
+            ->findOrFail($id);
+
+        // Get teaching assignments
+        $assignments = collect();
+        if ($teacher->relationLoaded('teachingAssignments')) {
+            $assignments = $teacher->teachingAssignments->map(function ($assignment) {
+                return [
+                    'subject' => optional($assignment->subject)->subject_name ?? 'N/A',
+                    'class' => optional($assignment->class)->class_name ?? 'N/A',
+                ];
+            });
+        }
+
+        // Get unique classes and subjects counts
+        $uniqueClasses = $teacher->subjectClasses->pluck('class_name')->unique()->count();
+        $uniqueSubjects = $teacher->teachingAssignments->pluck('subject.subject_name')->filter()->unique()->count();
+
+        $stats = [
+            'classes' => $uniqueClasses,
+            'subjects' => $uniqueSubjects,
+        ];
+
+        // Get payment history
+        $paymentHistory = SalaryPayment::where('staff_name', $teacher->full_name)
+            ->where('role', 'Teacher')
+            ->orderBy('payment_date', 'desc')
+            ->get();
+
+        // Calculate payment statistics
+        $paymentStats = [
+            'total_paid' => $paymentHistory->sum('amount'),
+            'total_payments' => $paymentHistory->count(),
+            'this_year' => $paymentHistory->filter(function ($payment) {
+                return $payment->payment_date && $payment->payment_date->year === now()->year;
+            })->sum('amount'),
+            'this_month' => $paymentHistory->filter(function ($payment) {
+                return $payment->payment_date && 
+                       $payment->payment_date->year === now()->year && 
+                       $payment->payment_date->month === now()->month;
+            })->sum('amount'),
+        ];
+
+        return view('teacher.teacher-profile', compact(
+            'teacher',
+            'stats',
+            'assignments',
+            'paymentHistory',
+            'paymentStats'
+        ));
     }
 
 }

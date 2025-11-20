@@ -136,7 +136,8 @@
 
         <div class="col-md-6 mb-3">
             <label for="parent_number" class="form-label">Phone Number</label>
-            <input type="text" name="parent_number" id="parent_number" class="form-control" placeholder="Enter phone number" required>
+            <input type="text" name="parent_number" id="parent_number" class="form-control" placeholder="+254712345678" required>
+            <small class="text-muted">Format: +254712345678</small>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -151,7 +152,8 @@
 
         <div class="col-md-6 mb-3">
             <label for="guardian_number" class="form-label">Phone Number</label>
-            <input type="text" name="guardian_number" id="guardian_number" class="form-control" placeholder="Enter Phone number">
+            <input type="text" name="guardian_number" id="guardian_number" class="form-control" placeholder="+254712345678">
+            <small class="text-muted">Format: +254712345678</small>
         </div>
 
         <div class="col-md-6 mb-3">

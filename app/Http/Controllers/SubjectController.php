@@ -44,16 +44,6 @@ class SubjectController extends Controller
                 'class.required' => 'Class is required',
             ]);
 
-            $duplicate = Subject::where('class', $request->class)
-                ->where('subject_name', $request->subject_name)
-                ->exists();
-
-            if ($duplicate) {
-                throw ValidationException::withMessages([
-                    'subject_name' => ['This subject is already assigned to that class. Please choose another combination.'],
-                ]);
-            }
-
             Subject::create([
                 'subject_name'  => $request->subject_name,
                 'teacher_name'  => $request->teacher_name,
@@ -102,17 +92,6 @@ class SubjectController extends Controller
                 'teacher_name.required' => 'Teacher name is required',
                 'class.required' => 'Class is required',
             ]);
-
-            $duplicate = Subject::where('class', $request->class)
-                ->where('subject_name', $request->subject_name)
-                ->where('subject_id', '!=', $request->subject_id)
-                ->exists();
-
-            if ($duplicate) {
-                throw ValidationException::withMessages([
-                    'subject_name' => ['Another teacher already handles this subject for the same class.'],
-                ]);
-            }
             
             $updateRecord = [
                 'subject_name' => $request->subject_name,

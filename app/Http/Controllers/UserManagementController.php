@@ -54,14 +54,29 @@ class UserManagementController extends Controller
 
                 if($image_name =='photo_defaults.jpg') {
                     if ($image != '') {
-                        $image_name = rand() . '.' . $image->getClientOriginalExtension();
+                        // Validate and sanitize filename
+                        $extension = $image->getClientOriginalExtension();
+                        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                        if (!in_array(strtolower($extension), $allowedExtensions)) {
+                            throw new \Exception('Invalid file type. Only images are allowed.');
+                        }
+                        $image_name = time() . '_' . rand(1000, 9999) . '.' . $extension;
                         $image->move(public_path('/images/'), $image_name);
                     }
                 } else {
-                    
                     if($image != '') {
-                        unlink('images/'.$image_name);
-                        $image_name = rand() . '.' . $image->getClientOriginalExtension();
+                        // Safely delete old image
+                        $oldImagePath = public_path('/images/' . basename($image_name));
+                        if (file_exists($oldImagePath) && is_file($oldImagePath)) {
+                            unlink($oldImagePath);
+                        }
+                        // Validate and sanitize new filename
+                        $extension = $image->getClientOriginalExtension();
+                        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                        if (!in_array(strtolower($extension), $allowedExtensions)) {
+                            throw new \Exception('Invalid file type. Only images are allowed.');
+                        }
+                        $image_name = time() . '_' . rand(1000, 9999) . '.' . $extension;
                         $image->move(public_path('/images/'), $image_name);
                     }
                 }
