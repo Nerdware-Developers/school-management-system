@@ -23,4 +23,9 @@ class FeesInformation extends Model
     {
         return $this->belongsTo(StudentFeeTerm::class, 'student_fee_term_id');
     }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
 }

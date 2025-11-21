@@ -71,4 +71,19 @@ class User extends Authenticatable
             }
         });
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->hasMany(Notification::class)->where('is_read', false);
+    }
+
+    public function events()
+    {
+        return $this->hasMany(Event::class, 'created_by');
+    }
 }

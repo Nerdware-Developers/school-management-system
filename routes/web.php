@@ -239,5 +239,72 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('account/finance/overview', 'financeOverview')->middleware('auth')->name('account/finance/overview');
     });
 
+    // ----------------------- payments ----------------------------//
+    Route::controller(PaymentController::class)->group(function () {
+        Route::get('payments/student/{studentId}', 'showPaymentForm')->middleware('auth')->name('payments.create');
+        Route::post('payments/initiate', 'initiatePayment')->middleware('auth')->name('payments.initiate');
+        Route::get('payments/success', 'paymentSuccess')->middleware('auth')->name('payments.success');
+        Route::get('payments/failure/{transactionId}', 'paymentFailure')->middleware('auth')->name('payments.failure');
+        Route::get('payments/receipt/{transactionId}', 'receipt')->middleware('auth')->name('payments.receipt');
+        Route::get('payments/receipt/{transactionId}/download', 'downloadReceipt')->middleware('auth')->name('payments.receipt.download');
+        Route::get('payments/mpesa/status/{transactionId}', 'checkMpesaStatus')->middleware('auth')->name('payments.mpesa.status');
+        Route::post('payments/webhook', 'webhook')->name('payments.webhook'); // Stripe webhook
+        Route::post('payments/daraja/callback', 'darajaCallback')->name('payments.daraja.callback'); // M-Pesa callback (no auth)
+    });
+
+    // ----------------------- notifications ----------------------------//
+    Route::controller(NotificationController::class)->group(function () {
+        Route::get('notifications', 'index')->middleware('auth')->name('notifications.index');
+        Route::get('notifications/unread-count', 'unreadCount')->middleware('auth')->name('notifications.unread-count');
+        Route::get('notifications/recent', 'recent')->middleware('auth')->name('notifications.recent');
+        Route::post('notifications/{id}/read', 'markAsRead')->middleware('auth')->name('notifications.mark-read');
+        Route::post('notifications/mark-all-read', 'markAllAsRead')->middleware('auth')->name('notifications.mark-all-read');
+        Route::delete('notifications/{id}', 'destroy')->middleware('auth')->name('notifications.destroy');
+    });
+
+    // ----------------------- events ----------------------------//
+    Route::controller(EventController::class)->group(function () {
+        Route::get('events', 'index')->middleware('auth')->name('events.index');
+        Route::get('events/json', 'getEvents')->middleware('auth')->name('events.json');
+        Route::get('events/create', 'create')->middleware('auth')->name('events.create');
+        Route::post('events', 'store')->middleware('auth')->name('events.store');
+        Route::get('events/{id}', 'show')->middleware('auth')->name('events.show');
+        Route::get('events/{id}/edit', 'edit')->middleware('auth')->name('events.edit');
+        Route::put('events/{id}', 'update')->middleware('auth')->name('events.update');
+        Route::delete('events/{id}', 'destroy')->middleware('auth')->name('events.destroy');
+    });
+
+    // ----------------------- transport ----------------------------//
+    Route::controller(TransportController::class)->group(function () {
+        // Buses
+        Route::get('transport/buses', 'buses')->middleware('auth')->name('transport.buses');
+        Route::get('transport/buses/create', 'createBus')->middleware('auth')->name('transport.buses.create');
+        Route::post('transport/buses', 'storeBus')->middleware('auth')->name('transport.buses.store');
+        Route::get('transport/buses/{id}/edit', 'editBus')->middleware('auth')->name('transport.buses.edit');
+        Route::put('transport/buses/{id}', 'updateBus')->middleware('auth')->name('transport.buses.update');
+        Route::delete('transport/buses/{id}', 'destroyBus')->middleware('auth')->name('transport.buses.destroy');
+
+        // Routes
+        Route::get('transport/routes', 'routes')->middleware('auth')->name('transport.routes');
+        Route::get('transport/routes/create', 'createRoute')->middleware('auth')->name('transport.routes.create');
+        Route::post('transport/routes', 'storeRoute')->middleware('auth')->name('transport.routes.store');
+        Route::get('transport/routes/{id}/edit', 'editRoute')->middleware('auth')->name('transport.routes.edit');
+        Route::put('transport/routes/{id}', 'updateRoute')->middleware('auth')->name('transport.routes.update');
+        Route::delete('transport/routes/{id}', 'destroyRoute')->middleware('auth')->name('transport.routes.destroy');
+
+        // Route Stops
+        Route::post('transport/routes/{routeId}/stops', 'storeStop')->middleware('auth')->name('transport.stops.store');
+        Route::put('transport/stops/{id}', 'updateStop')->middleware('auth')->name('transport.stops.update');
+        Route::delete('transport/stops/{id}', 'destroyStop')->middleware('auth')->name('transport.stops.destroy');
+        Route::get('transport/routes/{routeId}/stops', 'getRouteStops')->middleware('auth')->name('transport.stops.get');
+
+        // Student Assignments
+        Route::get('transport/assignments', 'assignments')->middleware('auth')->name('transport.assignments');
+        Route::get('transport/assignments/create', 'createAssignment')->middleware('auth')->name('transport.assignments.create');
+        Route::post('transport/assignments', 'storeAssignment')->middleware('auth')->name('transport.assignments.store');
+        Route::put('transport/assignments/{id}', 'updateAssignment')->middleware('auth')->name('transport.assignments.update');
+        Route::delete('transport/assignments/{id}', 'destroyAssignment')->middleware('auth')->name('transport.assignments.destroy');
+    });
+
 
 });

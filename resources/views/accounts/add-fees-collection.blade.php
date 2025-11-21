@@ -84,7 +84,10 @@
 
                                 <div class="col-12">
                                     <div class="student-submit text-end">
-                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                        <button type="button" id="payOnlineBtn" class="btn btn-success me-2" style="display: none;">
+                                            <i class="fas fa-credit-card"></i> Pay Online
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">Record Cash Payment</button>
                                     </div>
                                 </div>
                             </div> {{-- end row --}}
@@ -176,6 +179,26 @@ $(document).ready(function() {
             newBalance = 0;
         }
         $('#balance').val(newBalance.toFixed(2));
+    });
+
+    // Show/hide online payment button when student is selected
+    $('#student_name').on('select2:select', function(e) {
+        var studentId = $('#student_id').val();
+        if (studentId) {
+            $('#payOnlineBtn').show();
+        } else {
+            $('#payOnlineBtn').hide();
+        }
+    });
+
+    // Handle online payment button click
+    $('#payOnlineBtn').on('click', function() {
+        var studentId = $('#student_id').val();
+        if (studentId) {
+            window.location.href = '/payments/student/' + studentId;
+        } else {
+            toastr.error('Please select a student first');
+        }
     });
 
 });

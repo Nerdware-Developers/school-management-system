@@ -64,13 +64,14 @@
                 </li>
 
                 <li class="nav-item dropdown noti-dropdown me-2">
-                    <a href="#" class="dropdown-toggle nav-link header-nav-list" data-bs-toggle="dropdown">
+                    <a href="#" class="dropdown-toggle nav-link header-nav-list" data-bs-toggle="dropdown" id="notificationDropdown" style="position: relative;">
                         <img src="{{ URL::to('assets/img/icons/header-icon-05.svg') }}" alt="">
+                        <span class="badge rounded-pill bg-danger" id="notificationBadge" style="display: none; position: absolute; top: 0; right: 0; font-size: 10px;">0</span>
                     </a>
                     <div class="dropdown-menu notifications">
                         <div class="topnav-dropdown-header">
                             <span class="notification-title">Notifications</span>
-                            <a href="javascript:void(0)" class="clear-noti"> Clear All </a>
+                            <a href="javascript:void(0)" class="clear-noti" id="markAllRead"> Clear All </a>
                         </div>
                         <div class="noti-content">
                             <ul class="notification-list">
@@ -206,7 +207,92 @@
             $('.select2s-hidden-accessible').select2({
                 closeOnSelect: false
             });
+
+            // Load notifications
+            loadNotifications();
+
+            // Refresh notifications every 30 seconds
+            setInterval(loadNotifications, 30000);
+
+            // Mark all as read
+            $('#markAllRead').on('click', function(e) {
+                e.preventDefault();
+                $.post('{{ route("notifications.mark-all-read") }}', {
+                    _token: '{{ csrf_token() }}'
+                }, function() {
+                    loadNotifications();
+                });
+            });
         });
+
+        function loadNotifications() {
+            $.get('{{ route("notifications.recent") }}', function(notifications) {
+                var html = '';
+                if (notifications.length === 0) {
+                    html = '<li class="text-center p-3"><span class="text-muted">No notifications</span></li>';
+                } else {
+                    notifications.forEach(function(notif) {
+                        var timeAgo = getTimeAgo(notif.created_at);
+                        var icon = getNotificationIcon(notif.type);
+                        var readClass = notif.is_read ? '' : 'unread';
+                        html += '<li class="notification-message ' + readClass + '">';
+                        html += '<a href="' + (notif.link || '#') + '" onclick="markAsRead(' + notif.id + ')">';
+                        html += '<div class="media d-flex">';
+                        html += '<span class="avatar avatar-sm flex-shrink-0">';
+                        html += '<i class="' + icon + '"></i>';
+                        html += '</span>';
+                        html += '<div class="media-body flex-grow-1">';
+                        html += '<p class="noti-details"><span class="noti-title">' + notif.title + '</span></p>';
+                        html += '<p class="noti-time"><span class="notification-time">' + timeAgo + '</span></p>';
+                        html += '</div></div></a></li>';
+                    });
+                }
+                $('#notificationList ul').html(html);
+            });
+
+            // Update badge count
+            $.get('{{ route("notifications.unread-count") }}', function(data) {
+                if (data.count > 0) {
+                    $('#notificationBadge').text(data.count).show();
+                } else {
+                    $('#notificationBadge').hide();
+                }
+            });
+        }
+
+        function markAsRead(id) {
+            $.post('/notifications/' + id + '/read', {
+                _token: '{{ csrf_token() }}'
+            });
+        }
+
+        function getTimeAgo(dateString) {
+            var date = new Date(dateString);
+            var now = new Date();
+            var seconds = Math.floor((now - date) / 1000);
+            
+            if (seconds < 60) return seconds + ' seconds ago';
+            var minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes + ' mins ago';
+            var hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours + ' hours ago';
+            var days = Math.floor(hours / 24);
+            return days + ' days ago';
+        }
+
+        function getNotificationIcon(type) {
+            var icons = {
+                'info': 'fas fa-info-circle text-info',
+                'success': 'fas fa-check-circle text-success',
+                'warning': 'fas fa-exclamation-triangle text-warning',
+                'error': 'fas fa-times-circle text-danger',
+                'fee': 'fas fa-money-bill text-primary',
+                'attendance': 'fas fa-user-check text-info',
+                'exam': 'fas fa-file-alt text-warning',
+                'event': 'fas fa-calendar text-primary'
+            };
+            return icons[type] || 'fas fa-bell text-secondary';
+        }
     </script>
 </body>
 </html>

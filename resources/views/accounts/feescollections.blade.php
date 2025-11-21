@@ -71,6 +71,15 @@
                                                 <td>{{ $value->paid_date }}</td>
                                                 <td class="text-end">
                                                     <span class="badge badge-success">Paid</span>
+                                                    @php
+                                                        $student = \App\Models\Student::where('admission_number', $value->admission_number)->first();
+                                                        $balance = $student ? ($student->balance ?? 0) : 0;
+                                                    @endphp
+                                                    @if($student && $balance > 0)
+                                                        <a href="{{ route('payments.create', $student->id) }}" class="btn btn-sm btn-success ms-2">
+                                                            <i class="fas fa-credit-card"></i> Pay Online
+                                                        </a>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach

@@ -31,4 +31,20 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'daraja' => [
+        'consumer_key' => env('DARAJA_CONSUMER_KEY'),
+        'consumer_secret' => env('DARAJA_CONSUMER_SECRET'),
+        'shortcode' => env('DARAJA_SHORTCODE'),
+        'passkey' => env('DARAJA_PASSKEY'),
+        'base_url' => env('DARAJA_BASE_URL', 'https://sandbox.safaricom.co.ke'),
+        'callback_url' => env('DARAJA_CALLBACK_URL'), // Set in .env or will be generated in DarajaService
+        'environment' => env('DARAJA_ENVIRONMENT', 'sandbox'), // sandbox or production
+    ],
+
 ];

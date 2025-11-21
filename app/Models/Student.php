@@ -64,4 +64,14 @@ class Student extends Model
         return $this->hasOne(StudentFeeTerm::class)->latestOfMany();
     }
 
+    public function busAssignment()
+    {
+        return $this->hasOne(StudentBusAssignment::class)->where('status', 'active');
+    }
+
+    public function busAssignments()
+    {
+        return $this->hasMany(StudentBusAssignment::class);
+    }
+
 }
