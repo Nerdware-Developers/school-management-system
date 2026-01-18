@@ -218,7 +218,7 @@
                                 <li>
                                     <div class="report-btn">
                                         <a href="#" class="btn">
-                                            <img src="assets/img/icons/invoices-icon5.png" alt="" class="me-2">
+                                            <img src="{{ URL::to('assets/img/icons/invoices-icon5.png') }}" alt="" class="me-2">
                                             Generate report
                                         </a>
                                     </div>
@@ -247,7 +247,7 @@
                             </div>
                             <div class="col-lg-4 col-md-4">
                                 <div class="invoices-settings-btn">
-                                    <a href="invoices-settings.html" class="invoices-settings-icon">
+                                    <a href="{{ route('invoice/settings/page') }}" class="invoices-settings-icon">
                                         <i class="feather feather-settings"></i>
                                     </a>
                                     <a href="{{ route('invoice/add/page') }}" class="btn">
@@ -269,10 +269,10 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon1.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$8,78,797</div>
+                                    <div class="inovices-amount">Ksh {{ number_format($stats['all']['total'] ?? 0, 2) }}</div>
                                 </div>
                             </div>
-                            <p class="inovices-all">All Invoices <span>50</span></p>
+                            <p class="inovices-all">All Invoices <span>{{ $stats['all']['count'] ?? 0 }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -284,10 +284,10 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon2.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$4,5884</div>
+                                    <div class="inovices-amount">Ksh {{ number_format($stats['paid']['total'] ?? 0, 2) }}</div>
                                 </div>
                             </div>
-                            <p class="inovices-all">Paid Invoices <span>60</span></p>
+                            <p class="inovices-all">Paid Invoices <span>{{ $stats['paid']['count'] ?? 0 }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -299,10 +299,10 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon3.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$2,05,545</div>
+                                    <div class="inovices-amount">Ksh {{ number_format($stats['unpaid']['total'] ?? 0, 2) }}</div>
                                 </div>
                             </div>
-                            <p class="inovices-all">Unpaid Invoices <span>70</span></p>
+                            <p class="inovices-all">Unpaid Invoices <span>{{ $stats['unpaid']['count'] ?? 0 }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -314,10 +314,10 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon4.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$8,8,797</div>
+                                    <div class="inovices-amount">Ksh {{ number_format($stats['cancelled']['total'] ?? 0, 2) }}</div>
                                 </div>
                             </div>
-                            <p class="inovices-all">Cancelled Invoices <span>80</span></p>
+                            <p class="inovices-all">Cancelled Invoices <span>{{ $stats['cancelled']['count'] ?? 0 }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -352,16 +352,16 @@
                                                 <a href="{{ url('invoice/edit/'.$value->invoice_id) }}" class="invoice-link">{{ $value->invoice_id }}</a>
                                             </td>
                                             <td>{{ $value->category }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($value->created_at)->format('d M Y') }}</td>
+                                            <td>{{ $value->created_at ? \Carbon\Carbon::parse($value->created_at)->format('d M Y') : 'N/A' }}</td>
                                             <td>
                                                 <h2 class="table-avatar">
-                                                    <a href="profile.html">
+                                                    <span>
                                                         <img class="avatar avatar-sm me-2 avatar-img rounded-circle" src="{{ URL::to('/images/photo_defaults.jpg') }}" alt=""> {{ $value->customer_name }}
-                                                    </a>
+                                                    </span>
                                                 </h2>
                                             </td>
-                                            <td class="text-primary">$ {{ $value->total_amount }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($value->due_date)->format('d M Y') }}</td>
+                                            <td class="text-primary">Ksh {{ number_format($value->total_amount, 2) }}</td>
+                                            <td>{{ $value->due_date ? \Carbon\Carbon::parse($value->due_date)->format('d M Y') : 'N/A' }}</td>
                                             <td><span class="badge bg-success-light">Paid</span></td>
                                             <td class="text-end">
                                                 <div class="dropdown dropdown-action">
@@ -370,10 +370,10 @@
                                                         <i class="fas fa-ellipsis-v"></i>
                                                     </a>
                                                     <div class="dropdown-menu dropdown-menu-end">
-                                                        <a class="dropdown-item" href="edit-invoice.html">
+                                                        <a class="dropdown-item" href="{{ route('invoice/edit/page', $value->invoice_id) }}">
                                                             <i class="far fa-edit me-2"></i>Edit
                                                         </a>
-                                                        <a class="dropdown-item" href="{{ url('invoice/view/'.$value->invoice_id) }}">
+                                                        <a class="dropdown-item" href="{{ route('invoice/view/page', $value->invoice_id) }}">
                                                             <i class="far fa-eye me-2"></i>View Detail
                                                         </a>
                                                         <a class="dropdown-item" href="javascript:void(0);">

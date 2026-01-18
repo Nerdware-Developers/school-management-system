@@ -225,10 +225,18 @@
                                                 <div class="col-12 col-sm-5">
                                                     <div class="form-group local-forms">
                                                         <label>Subject</label>
-                                                        <select class="form-control select subject-select" name="subject_class[0][subject_id]">
+                                                        <select class="form-control select subject-select" name="subject_class[0][subject_id]" data-row="0">
                                                             <option value="">Select Subject (Optional)</option>
+                                                            <option value="__new__">+ Add New Subject</option>
                                                             @foreach($subjects as $subject)
                                                                 <option value="{{ $subject->id }}">{{ $subject->subject_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <input type="text" class="form-control mt-2 new-subject-input" name="subject_class[0][new_subject_name]" placeholder="Enter new subject name" style="display: none;">
+                                                        <select class="form-control mt-2 new-subject-class-input" name="subject_class[0][new_subject_class]" style="display: none;">
+                                                            <option value="">Select Class for New Subject</option>
+                                                            @foreach($classes as $class)
+                                                                <option value="{{ $class->class_name }}">{{ $class->class_name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -310,9 +318,15 @@
                     <div class="col-12 col-sm-5">
                         <div class="form-group local-forms">
                             <label>Subject</label>
-                            <select class="form-control select subject-select" name="subject_class[${rowCount}][subject_id]">
+                            <select class="form-control select subject-select" name="subject_class[${rowCount}][subject_id]" data-row="${rowCount}">
                                 <option value="">Select Subject (Optional)</option>
+                                <option value="__new__">+ Add New Subject</option>
                                 ${subjectOptions}
+                            </select>
+                            <input type="text" class="form-control mt-2 new-subject-input" name="subject_class[${rowCount}][new_subject_name]" placeholder="Enter new subject name" style="display: none;">
+                            <select class="form-control mt-2 new-subject-class-input" name="subject_class[${rowCount}][new_subject_class]" style="display: none;">
+                                <option value="">Select Class for New Subject</option>
+                                ${classOptions}
                             </select>
                         </div>
                     </div>
@@ -359,6 +373,32 @@
 
     // Initialize remove buttons on page load
     updateRemoveButtons();
+
+    // Handle "Add New Subject" option
+    $(document).on('change', '.subject-select', function() {
+        const rowIndex = $(this).data('row');
+        const $row = $(this).closest('.subject-class-row');
+        const $newSubjectInput = $row.find('.new-subject-input');
+        const $newSubjectClassInput = $row.find('.new-subject-class-input');
+        const $existingClassSelect = $row.find('.class-select');
+        const $subjectSelect = $(this);
+        
+        if ($(this).val() === '__new__') {
+            // Show new subject inputs
+            $newSubjectInput.show().prop('required', true);
+            $newSubjectClassInput.show().prop('required', true);
+            // Hide existing class select
+            $existingClassSelect.hide().prop('required', false);
+            $subjectSelect.prop('required', false);
+        } else {
+            // Hide new subject inputs
+            $newSubjectInput.hide().prop('required', false).val('');
+            $newSubjectClassInput.hide().prop('required', false).val('');
+            // Show existing class select
+            $existingClassSelect.show().prop('required', false);
+            $subjectSelect.prop('required', false);
+        }
+    });
 </script>
 @endsection
 @endsection

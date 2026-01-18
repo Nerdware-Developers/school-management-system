@@ -51,7 +51,7 @@
                                     </thead>
                                     <tbody>
                                         @php
-                                            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                                            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
                                         @endphp
                                         @foreach($days as $day)
                                             <tr>

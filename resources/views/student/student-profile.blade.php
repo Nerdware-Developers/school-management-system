@@ -20,6 +20,11 @@
                         <h4 class="fw-bold mb-1">{{ $studentProfile->first_name }} {{ $studentProfile->last_name }}</h4>
                         <p class="mb-0 text-muted">Admission No: <strong>{{ $studentProfile->admission_number }}</strong></p>
                         <p class="mb-0 text-muted">Class: {{ $studentProfile->class }}</p>
+                        @if($classTeacher)
+                            <p class="mb-0 text-muted">Class Teacher: <strong>{{ $classTeacher->full_name }}</strong></p>
+                        @else
+                            <p class="mb-0 text-muted">Class Teacher: <span class="text-muted">Not assigned</span></p>
+                        @endif
                     </div>
                 </div>
                 <div class="text-end mt-3 mt-md-0">
@@ -54,14 +59,18 @@
                 <div class="card border-0 shadow-sm" style="background-color:#fee2e2;">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-1">Outstanding Balance</h6>
-                        @php $creditAvailable = $financialSummary['credit_balance']; @endphp
-                        @if($balance > 0)
-                            <h3 class="fw-bold text-danger">Ksh{{ number_format($balance, 2) }}</h3>
+                        @php 
+                            $creditAvailable = $financialSummary['credit_balance'];
+                            // Use the actual closing balance from current term if available
+                            $actualBalance = $currentTerm ? $currentTerm->closing_balance : $balance;
+                        @endphp
+                        @if($actualBalance > 0)
+                            <h3 class="fw-bold text-danger">Ksh{{ number_format($actualBalance, 2) }}</h3>
                             <p class="small text-muted mb-0">
                                 Updated {{ optional(optional($currentTerm)->updated_at)->diffForHumans() ?? 'N/A' }}
                             </p>
-                        @elseif($creditAvailable > 0)
-                            <h3 class="fw-bold text-success">Credit Ksh{{ number_format($creditAvailable, 2) }}</h3>
+                        @elseif($actualBalance < 0)
+                            <h3 class="fw-bold text-success">Credit Ksh{{ number_format(abs($actualBalance), 2) }}</h3>
                             <p class="small text-muted mb-0">Carried into next term</p>
                         @else
                             <h3 class="fw-bold text-success">Settled</h3>
@@ -93,60 +102,7 @@
 
         <!-- Finance Actions -->
         <div class="row g-4 mb-4">
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body">
-                        @php
-                            $creditAvailable = $financialSummary['credit_balance'];
-                            $badgeText = $balance > 0
-                                ? 'Outstanding: Ksh' . number_format($balance, 2)
-                                : ($creditAvailable > 0 ? 'Credit: Ksh' . number_format($creditAvailable, 2) : 'Settled');
-                        @endphp
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0">Start New Term</h5>
-                            <span class="badge bg-light text-dark">{{ $badgeText }}</span>
-                        </div>
-                        <form method="POST" action="{{ route('student.terms.store', $studentProfile->id) }}">
-                            @csrf
-                            <div class="mb-3">
-                                <label class="form-label">Term Name</label>
-                                <input type="text" name="term_name" class="form-control @error('term_name', 'termCreation') is-invalid @enderror"
-                                    placeholder="e.g., Term 2" value="{{ old('term_name') }}">
-                                @error('term_name', 'termCreation')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Academic Year</label>
-                                <input type="text" name="academic_year" class="form-control @error('academic_year', 'termCreation') is-invalid @enderror"
-                                    placeholder="e.g., 2025" value="{{ old('academic_year', $studentProfile->financial_year) }}">
-                                @error('academic_year', 'termCreation')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Fee Amount</label>
-                                <input type="number" step="0.01" name="fee_amount" class="form-control @error('fee_amount', 'termCreation') is-invalid @enderror"
-                                    placeholder="Enter term amount" value="{{ old('fee_amount') }}">
-                                @error('fee_amount', 'termCreation')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control @error('notes', 'termCreation') is-invalid @enderror" name="notes" rows="2" placeholder="Optional notes">{{ old('notes') }}</textarea>
-                                @error('notes', 'termCreation')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">Create Term</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
+            <div class="col-lg-12">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -363,6 +319,183 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Exam Results -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Exam Results</h5>
+                    @if(!$examResults->isEmpty())
+                        <a href="{{ route('report-cards.transcript', $studentProfile->id) }}" 
+                           class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-file-alt me-1"></i> Download Full Transcript
+                        </a>
+                    @endif
+                </div>
+
+                @if($examResults->isEmpty())
+                    <p class="text-muted mb-0">No exam results found for this student.</p>
+                @else
+                    <!-- Filter Form -->
+                    <form method="GET" action="{{ url('student/profile/' . $studentProfile->id) }}" class="mb-4">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="exam_type" class="form-label">Exam Type</label>
+                                <select name="exam_type" id="exam_type" class="form-select">
+                                    <option value="">All Exam Types</option>
+                                    @foreach($availableExamTypes as $examType)
+                                        <option value="{{ $examType }}" {{ $selectedExamType == $examType ? 'selected' : '' }}>
+                                            {{ ucfirst(str_replace('-', ' ', $examType)) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="term" class="form-label">Term</label>
+                                <select name="term" id="term" class="form-select">
+                                    <option value="">All Terms</option>
+                                    @foreach($availableTerms as $term)
+                                        <option value="{{ $term }}" {{ $selectedTerm == $term ? 'selected' : '' }}>
+                                            {{ $term }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter me-1"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    @if($examResults->count() > 0)
+                        @php
+                            // Get the first (and should be only) result group
+                            $results = $examResults->first();
+                            $firstResult = $results->first();
+                            $exam = $firstResult->exam;
+                            $groupKey = $examResults->keys()->first();
+                            $groupParts = explode('_', $groupKey);
+                            $examType = $groupParts[0] ?? 'Unknown';
+                            $term = $groupParts[1] ?? 'Unknown';
+                            $className = $groupParts[2] ?? ($exam && $exam->class ? $exam->class->class_name : 'Unknown');
+                        @endphp
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold text-primary mb-0">
+                                    <i class="fas fa-graduation-cap me-2"></i>
+                                    {{ ucfirst(str_replace('-', ' ', $examType)) }} - {{ $term }} 
+                                    @if($exam && $exam->class)
+                                        <span class="badge bg-secondary ms-2">{{ $className }}</span>
+                                    @endif
+                                </h6>
+                                <a href="{{ route('report-cards.generate', $studentProfile->id) }}?term={{ urlencode($term) }}&exam_type={{ urlencode($examType) }}" 
+                                   class="btn btn-sm btn-primary" target="_blank">
+                                    <i class="fas fa-download me-1"></i> Download Report Card
+                                </a>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Exam Name</th>
+                                            <th>Marks Obtained</th>
+                                            <th>Total Marks</th>
+                                            <th>Percentage</th>
+                                            <th>Grade</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $totalMarks = 0;
+                                            $totalPossible = 0;
+                                        @endphp
+                                        @foreach($results as $result)
+                                            @php
+                                                $exam = $result->exam;
+                                                $marks = $result->marks ?? 0;
+                                                $totalMarksPossible = $exam->total_marks ?? 100;
+                                                $percentage = $totalMarksPossible > 0 ? ($marks / $totalMarksPossible) * 100 : 0;
+                                                $totalMarks += $marks;
+                                                $totalPossible += $totalMarksPossible;
+                                                
+                                                // Calculate grade
+                                                $grade = 'F';
+                                                if ($percentage >= 90) $grade = 'A+';
+                                                elseif ($percentage >= 80) $grade = 'A';
+                                                elseif ($percentage >= 70) $grade = 'B+';
+                                                elseif ($percentage >= 60) $grade = 'B';
+                                                elseif ($percentage >= 50) $grade = 'C+';
+                                                elseif ($percentage >= 40) $grade = 'C';
+                                                elseif ($percentage >= 30) $grade = 'D';
+                                            @endphp
+                                            <tr>
+                                                <td><strong>{{ $exam->subject ?? 'N/A' }}</strong></td>
+                                                <td>{{ $exam->exam_name ?? 'N/A' }}</td>
+                                                <td>
+                                                    <span class="fw-bold">{{ number_format($marks, 2) }}</span>
+                                                </td>
+                                                <td>{{ number_format($totalMarksPossible, 2) }}</td>
+                                                <td>
+                                                    <span class="badge {{ $percentage >= 50 ? 'bg-success' : ($percentage >= 40 ? 'bg-warning' : 'bg-danger') }}">
+                                                        {{ number_format($percentage, 1) }}%
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {{ $grade == 'A+' || $grade == 'A' ? 'bg-success' : ($grade == 'B+' || $grade == 'B' ? 'bg-info' : ($grade == 'C+' || $grade == 'C' ? 'bg-warning' : 'bg-danger')) }}">
+                                                        {{ $grade }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if($exam && $exam->exam_date)
+                                                        {{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}
+                                                    @else
+                                                        <span class="text-muted">N/A</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        @php
+                                            $overallPercentage = $totalPossible > 0 ? ($totalMarks / $totalPossible) * 100 : 0;
+                                            $overallGrade = 'F';
+                                            if ($overallPercentage >= 90) $overallGrade = 'A+';
+                                            elseif ($overallPercentage >= 80) $overallGrade = 'A';
+                                            elseif ($overallPercentage >= 70) $overallGrade = 'B+';
+                                            elseif ($overallPercentage >= 60) $overallGrade = 'B';
+                                            elseif ($overallPercentage >= 50) $overallGrade = 'C+';
+                                            elseif ($overallPercentage >= 40) $overallGrade = 'C';
+                                            elseif ($overallPercentage >= 30) $overallGrade = 'D';
+                                        @endphp
+                                        <tr class="table-info fw-bold">
+                                            <td colspan="2"><strong>Total</strong></td>
+                                            <td><strong>{{ number_format($totalMarks, 2) }}</strong></td>
+                                            <td><strong>{{ number_format($totalPossible, 2) }}</strong></td>
+                                            <td>
+                                                <span class="badge {{ $overallPercentage >= 50 ? 'bg-success' : ($overallPercentage >= 40 ? 'bg-warning' : 'bg-danger') }}">
+                                                    {{ number_format($overallPercentage, 1) }}%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ $overallGrade == 'A+' || $overallGrade == 'A' ? 'bg-success' : ($overallGrade == 'B+' || $overallGrade == 'B' ? 'bg-info' : ($overallGrade == 'C+' || $overallGrade == 'C' ? 'bg-warning' : 'bg-danger')) }}">
+                                                    {{ $overallGrade }}
+                                                </span>
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">No exam results found for the selected filter.</p>
+                    @endif
+                @endif
             </div>
         </div>
 

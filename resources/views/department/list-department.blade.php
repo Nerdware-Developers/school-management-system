@@ -52,6 +52,9 @@
                                     <h3 class="page-title">Departments</h3>
                                 </div>
                                 <div class="col-auto text-end float-end ms-auto download-grp">
+                                    <button type="button" id="bulkDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+                                        <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                                    </button>
                                     <a href="#" class="btn btn-outline-primary me-2">
                                         <i class="fas fa-download"></i> Download
                                     </a>
@@ -65,6 +68,11 @@
                         <table class="table table-stripped table table-hover table-center mb-0" id="dataList">
                             <thead class="student-thread">
                                 <tr>
+                                    <th>
+                                        <div class="form-check check-tables">
+                                            <input class="form-check-input" type="checkbox" id="selectAll" value="">
+                                        </div>
+                                    </th>
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>HOD</th>
@@ -129,6 +137,12 @@
                 },
                 columns: [
                     {
+                        data: 'checkbox',
+                        name: 'checkbox',
+                        orderable: false,
+                        searchable: false,
+                    },
+                    {
                         data: 'department_id',
                         name: 'department_id',
                     },
@@ -151,11 +165,22 @@
                     {
                         data: 'modify',
                         name: 'modify',
+                        orderable: false,
+                        searchable: false,
                     },
                 ]
             });
         });
     </script>
+
+    <style>
+        tr:has(.department-checkbox:checked) {
+            background-color: #e3f2fd !important;
+        }
+        #bulkDeleteBtn {
+            transition: all 0.3s ease;
+        }
+    </style>
 
     {{-- delete js --}}
 <script>
@@ -163,6 +188,83 @@
     {
         var _this = $(this).parents('tr');
         $('.e_department_id').val(_this.find('.department_id').data('department_id'));
+    });
+
+    // Bulk delete functionality for DataTables
+    $(document).ready(function() {
+        // Select All checkbox
+        $('#selectAll').on('change', function() {
+            $('.department-checkbox').prop('checked', $(this).prop('checked'));
+            updateDeleteButton();
+        });
+
+        // Individual checkbox change (using event delegation for dynamically loaded rows)
+        $(document).on('change', '.department-checkbox', function() {
+            var totalCheckboxes = $('.department-checkbox').length;
+            var checkedCheckboxes = $('.department-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+            updateDeleteButton();
+        });
+
+        function updateDeleteButton() {
+            var selectedCount = $('.department-checkbox:checked').length;
+            if (selectedCount > 0) {
+                $('#bulkDeleteBtn').show();
+                $('#selectedCount').text(selectedCount);
+            } else {
+                $('#bulkDeleteBtn').hide();
+            }
+        }
+
+        // Bulk delete
+        $('#bulkDeleteBtn').on('click', function() {
+            var selectedIds = [];
+            $('.department-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+
+            if (selectedIds.length === 0) {
+                toastr.warning('Please select at least one department to delete');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete ' + selectedIds.length + ' department(s)? This action cannot be undone.')) {
+                return;
+            }
+
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
+
+            $.ajax({
+                url: '{{ route("departments.bulk-delete") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    department_ids: selectedIds
+                },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        // Reload DataTable
+                        $('#dataList').DataTable().ajax.reload();
+                        $('#selectAll').prop('checked', false);
+                        updateDeleteButton();
+                    } else {
+                        toastr.error(response.message || 'Failed to delete departments');
+                    }
+                },
+                error: function(xhr) {
+                    var message = 'Failed to delete departments';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    toastr.error(message);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                }
+            });
+        });
     });
 </script>
 @endsection

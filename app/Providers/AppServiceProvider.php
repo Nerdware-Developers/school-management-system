@@ -40,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
 
                     $menus = Menu::whereNull('parent_id')
                         ->where('is_active', true)
+                        ->where('title', '!=', 'Settings')
                         ->with('children')
                         ->orderBy('order')
                         ->get();

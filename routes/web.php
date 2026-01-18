@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Request;
 use App\Http\Controllers\StudentController;
 
 /*
@@ -26,17 +27,7 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-Route::group(['middleware'=>'auth'],function()
-{
-    Route::get('home',function()
-    {
-        return view('home');
-    });
-    Route::get('home',function()
-    {
-        return view('home');
-    });
-});
+// Removed duplicate home route - handled by HomeController
 
 Auth::routes();
 Route::group(['namespace' => 'App\Http\Controllers\Auth'],function()
@@ -46,7 +37,6 @@ Route::group(['namespace' => 'App\Http\Controllers\Auth'],function()
         Route::get('/login', 'login')->name('login');
         Route::post('/login', 'authenticate');
         Route::get('/logout', 'logout')->name('logout');
-        Route::post('change/password', 'changePassword')->name('change/password');
     });
 
     // ----------------------------- register -------------------------//
@@ -61,7 +51,9 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
     // -------------------------- main dashboard ----------------------//
     Route::controller(HomeController::class)->group(function () {
         Route::get('/home', 'index')->middleware('auth')->name('home');
+        Route::get('/home/pending-fees', 'getPendingFees')->middleware('auth')->name('home.pending-fees');
         Route::get('user/profile/page', 'userProfile')->middleware('auth')->name('user/profile/page');
+        Route::post('user/profile/update', 'updateProfile')->middleware('auth')->name('user/profile/update');
         Route::get('teacher/dashboard', 'teacherDashboardIndex')->middleware('auth')->name('teacher/dashboard');
         Route::get('student/dashboard', 'studentDashboardIndex')->middleware('auth')->name('student/dashboard');
     });
@@ -78,22 +70,36 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
     });
 
     // ------------------------ setting -------------------------------//
-    Route::controller(Setting::class)->group(function () {
-        Route::get('setting/page', 'index')->middleware('auth')->name('setting/page');
+    // Settings section removed - not needed
+    // Route::controller(Setting::class)->group(function () {
+    //     Route::get('setting/page', 'index')->middleware('auth')->name('setting/page');
+    // });
+
+    // ------------------------ financial settings -------------------------------//
+    Route::controller(FinancialSettingsController::class)->group(function () {
+        Route::get('settings/financial', 'index')->middleware('auth')->name('financial.settings');
+        Route::post('settings/financial/update', 'update')->middleware('auth')->name('financial.settings.update');
+        Route::post('settings/financial/apply', 'applyToAllStudents')->middleware('auth')->name('financial.settings.apply');
     });
 
     // ------------------------ student -------------------------------//
     Route::controller(StudentController::class)->group(function () {
         Route::get('student/list', 'student')->middleware('auth')->name('student/list'); // list student
+        Route::get('student/list-by-class', 'studentsByClass')->middleware('auth')->name('student/list-by-class'); // list students by class
+        Route::get('student/export-by-class', 'exportStudentsByClass')->middleware('auth')->name('student/export-by-class'); // export students by class
         Route::get('student/grid', 'studentGrid')->middleware('auth')->name('student/grid'); // grid student
         Route::get('student/add/page', 'studentAdd')->middleware('auth')->name('student/add/page'); // page student
         Route::post('student/add/save', 'studentSave')->middleware('auth')->name('student/add/save'); // save record student
         Route::get('student/edit/{id}', 'studentEdit')->middleware('auth')->name('student/edit'); // view for edit
         Route::post('student/update', 'studentUpdate')->middleware('auth')->name('student/update'); // update record student
         Route::post('student/delete', 'studentDelete')->middleware('auth')->name('student/delete'); // delete record student
+        Route::post('students/bulk-delete', 'bulkDelete')->middleware('auth')->name('students.bulk-delete'); // bulk delete students
+        Route::get('student/export', 'exportExcel')->middleware('auth')->name('student/export'); // export students to excel
         Route::get('student/profile/{id}', 'studentProfile')->middleware('auth'); // profile student
         Route::post('student/{student}/terms', 'storeTerm')->middleware('auth')->name('student.terms.store');
         Route::post('student/{student}/terms/{term}/payment', 'recordTermPayment')->middleware('auth')->name('student.terms.payment');
+        Route::patch('student/{student}/terms/{term}/update-year', 'updateTermYear')->middleware('auth')->name('student.terms.update-year');
+        Route::patch('student/{student}/terms/{term}/update-fee', 'updateTermFee')->middleware('auth')->name('student.terms.update-fee');
         Route::get('student/photo/{filename}', 'studentPhoto')->name('student.photo');
 
     });
@@ -108,7 +114,9 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('teacher/edit/{id}', 'editRecord')->middleware('auth'); // view teacher record
         Route::post('teacher/update', 'updateRecordTeacher')->middleware('auth')->name('teacher/update'); // update record
         Route::post('teacher/delete', 'teacherDelete')->middleware('auth')->name('teacher/delete'); // delete record teacher
+        Route::post('teachers/bulk-delete', 'bulkDelete')->middleware('auth')->name('teachers.bulk-delete'); // bulk delete teachers
         Route::get('teacher/profile/{id}', 'teacherProfile')->middleware('auth')->name('teacher/profile'); // teacher profile
+        Route::get('teacher/export', 'exportExcel')->middleware('auth')->name('teacher/export'); // export teachers to excel
     });
 
     // ----------------------- department -----------------------------//
@@ -119,6 +127,7 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::post('department/save', 'saveRecord')->middleware('auth')->name('department/save'); // department/save
         Route::post('department/update', 'updateRecord')->middleware('auth')->name('department/update'); // department/update
         Route::post('department/delete', 'deleteRecord')->middleware('auth')->name('department/delete'); // department/delete
+        Route::post('departments/bulk-delete', 'bulkDelete')->middleware('auth')->name('departments.bulk-delete'); // bulk delete departments
         Route::get('get-data-list', 'getDataList')->middleware('auth')->name('get-data-list'); // get data list
 
     });
@@ -130,6 +139,7 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::post('subject/save', 'saveRecord')->middleware('auth')->name('subject.save'); // subject/save
         Route::post('subject/update', 'updateRecord')->middleware('auth')->name('subject/update'); // subject/update
         Route::post('subject/delete', 'deleteRecord')->middleware('auth')->name('subject/delete'); // subject/delete
+        Route::post('subjects/bulk-delete', 'bulkDelete')->middleware('auth')->name('subjects.bulk-delete'); // bulk delete
         Route::get('subject/edit/{subject_id}', 'subjectEdit')->middleware('auth'); // subject/edit/page
     });
 
@@ -174,7 +184,6 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('exams', 'index')->middleware('auth')->name('exams.page');
         Route::get('add/exam/page', 'addExam')->middleware('auth')->name('add/exam/page');
         Route::post('exam/create', 'createExam')->middleware('auth')->name('exam.create');
-        Route::post('exam/save', 'saveExam')->middleware('auth')->name('exam.save');
         Route::get('exam/edit/{id}', 'edit')->middleware('auth')->name('exam.edit');
         Route::put('exams/{id}', 'update')->middleware('auth')->name('exam.update');
         Route::delete('exams/{id}', 'destroy')->middleware('auth')->name('exam.destroy');
@@ -182,6 +191,8 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::post('exam/save-marks', 'saveMarks')->middleware('auth')->name('exam.save-marks');
         Route::get('exam/view-results', 'viewResults')->middleware('auth')->name('exam.view-results');
         Route::delete('exam/delete-group', 'deleteGroup')->middleware('auth')->name('exam.delete-group');
+        Route::post('exams/bulk-delete', 'bulkDelete')->middleware('auth')->name('exams.bulk-delete'); // bulk delete exams
+        Route::post('exams/get-ids-by-groups', 'getExamIdsByGroups')->middleware('auth')->name('exams.get-ids-by-groups'); // get exam IDs by groups
         Route::get('exam/results/entry', 'resultsEntry')->middleware('auth')->name('exam.results.entry');
         Route::post('exam/results/save', 'resultsSave')->middleware('auth')->name('exam.results.save');
     });
@@ -199,6 +210,8 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('timetable/create', 'create')->middleware('auth')->name('timetable.create');
         Route::post('timetable', 'store')->middleware('auth')->name('timetable.store');
         Route::delete('timetable/{classId}', 'destroy')->middleware('auth')->name('timetable.destroy');
+        Route::get('timetable/get-teacher', 'getTeacherForSubject')->middleware('auth')->name('timetable.get-teacher');
+        Route::post('timetable/check-collision', 'checkTeacherCollision')->middleware('auth')->name('timetable.check-collision');
     });
 
     // ----------------------- report cards ----------------------------//
@@ -237,6 +250,7 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
     // ----------------------- finance overview ----------------------------//
     Route::controller(AccountsController::class)->group(function () {
         Route::get('account/finance/overview', 'financeOverview')->middleware('auth')->name('account/finance/overview');
+        Route::get('account/finance/export-balance', 'exportStudentsByBalance')->middleware('auth')->name('account/finance/export-balance');
     });
 
     // ----------------------- payments ----------------------------//
@@ -272,6 +286,7 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('events/{id}/edit', 'edit')->middleware('auth')->name('events.edit');
         Route::put('events/{id}', 'update')->middleware('auth')->name('events.update');
         Route::delete('events/{id}', 'destroy')->middleware('auth')->name('events.destroy');
+        Route::post('events/bulk-delete', 'bulkDelete')->middleware('auth')->name('events.bulk-delete'); // bulk delete events
     });
 
     // ----------------------- transport ----------------------------//

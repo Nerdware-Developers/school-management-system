@@ -63,12 +63,21 @@ class NotificationController extends Controller
         
         // Check if user has access to this notification
         if ($notification->user_id && $notification->user_id != Auth::id()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            Toastr::error('Unauthorized', 'Error');
+            return redirect()->back();
         }
 
         $notification->markAsRead();
 
-        return response()->json(['success' => true]);
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        Toastr::success('Notification marked as read', 'Success');
+        return redirect()->back();
     }
 
     /**
@@ -82,6 +91,10 @@ class NotificationController extends Controller
                 'is_read' => true,
                 'read_at' => now(),
             ]);
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'All notifications marked as read']);
+        }
 
         Toastr::success('All notifications marked as read', 'Success');
         return redirect()->back();

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Classe;
+use App\Models\Student;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -12,6 +14,12 @@ use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display calendar view
      */
@@ -137,6 +145,12 @@ class EventController extends Controller
             'created_by' => Auth::id(),
         ]);
 
+        // Send notifications if event is for parents or specific class
+        if (in_array($request->visibility, ['parents', 'public', 'specific_class']) || 
+            in_array($request->type, ['opening', 'closing'])) {
+            $this->sendEventNotifications($event);
+        }
+
         Toastr::success('Event created successfully', 'Success');
         return redirect()->route('events.index');
     }
@@ -233,6 +247,45 @@ class EventController extends Controller
     }
 
     /**
+     * Bulk delete events
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'event_ids' => 'required|array',
+            'event_ids.*' => 'required|integer|exists:events,id',
+        ]);
+
+        try {
+            $eventIds = $request->event_ids;
+            $events = Event::whereIn('id', $eventIds)->get();
+            $deletedCount = 0;
+
+            foreach ($events as $event) {
+                // Check if user can delete
+                if ($event->created_by == Auth::id() || Auth::user()->role_name == 'Admin') {
+                    $event->update(['is_active' => false]);
+                    $deletedCount++;
+                }
+            }
+
+            Toastr::success("Successfully deleted {$deletedCount} event(s)", 'Success');
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} event(s)",
+                'deleted_count' => $deletedCount
+            ]);
+        } catch(\Exception $e) {
+            \Log::error('Bulk delete events failed: ' . $e->getMessage());
+            Toastr::error('Failed to delete events', 'Error');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete events'
+            ], 500);
+        }
+    }
+
+    /**
      * Get default color for event type
      */
     private function getDefaultColor($type)
@@ -248,5 +301,46 @@ class EventController extends Controller
         ];
 
         return $colors[$type] ?? '#3b82f6';
+    }
+
+    /**
+     * Send event notifications to parents
+     */
+    private function sendEventNotifications($event)
+    {
+        try {
+            $students = collect();
+
+            // If event is class-specific, get students in that class
+            if ($event->target_class) {
+                $class = Classe::find($event->target_class);
+                if ($class) {
+                    $students = Student::where('class', $class->class_name)->get();
+                }
+            } elseif (in_array($event->type, ['opening', 'closing'])) {
+                // School-wide events - notify all students
+                $students = Student::all();
+            } elseif ($event->visibility === 'parents' || $event->visibility === 'public') {
+                // Notify all students for parent/public events
+                $students = Student::all();
+            }
+
+            foreach ($students as $student) {
+                $this->notificationService->sendEventNotification($student->id, [
+                    'event_id' => $event->id,
+                    'title' => $event->title,
+                    'description' => $event->description,
+                    'date' => $event->start_date->format('Y-m-d'),
+                    'time' => $event->start_time,
+                    'location' => $event->location,
+                    'type' => $event->type,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send event notifications', [
+                'error' => $e->getMessage(),
+                'event_id' => $event->id ?? null,
+            ]);
+        }
     }
 }

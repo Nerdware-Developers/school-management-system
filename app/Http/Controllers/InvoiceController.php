@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use DB;
-use App\Models\User;
+use Carbon\Carbon;
 use App\Models\InvoiceDetails;
 use App\Models\InvoiceDiscount;
 use App\Models\InvoiceTotalAmount;
@@ -19,13 +19,90 @@ class InvoiceController extends Controller
     /** index page */
     public function invoiceList()
     {
-        $invoiceList = InvoiceDetails::join('invoice_customer_names as icn', 'invoice_details.invoice_id', 'icn.invoice_id')
-            ->join('invoice_total_amounts as ita', 'invoice_details.invoice_id', 'ita.invoice_id')
-            ->select('invoice_details.invoice_id', 'invoice_details.category', 'icn.customer_name', 'ita.total_amount')
-            ->distinct('invoice_details.invoice_id')
+        // Get all invoices from invoice_customer_names (the main table) and join related data
+        $allInvoices = InvoiceCustomerName::leftJoin('invoice_total_amounts as ita', 'invoice_customer_names.invoice_id', 'ita.invoice_id')
+            ->select('invoice_customer_names.invoice_id', 
+                     'invoice_customer_names.customer_name', 
+                     'ita.total_amount', 
+                     'invoice_customer_names.due_date', 
+                     'invoice_customer_names.created_at', 
+                     'invoice_customer_names.status')
+            ->orderBy('invoice_customer_names.created_at', 'desc')
             ->get();
-        $invoiceList = $invoiceList->unique('invoice_id')->values();
-        return view('invoices.list_invoices',compact('invoiceList'));
+        
+        // Get categories for each invoice (first category found)
+        $invoiceList = $allInvoices->map(function($invoice) {
+            $firstDetail = InvoiceDetails::where('invoice_id', $invoice->invoice_id)->first();
+            $invoice->category = $firstDetail ? $firstDetail->category : 'N/A';
+            return $invoice;
+        });
+
+        // Calculate real statistics
+        $allInvoices = InvoiceCustomerName::join('invoice_total_amounts as ita', 'invoice_customer_names.invoice_id', 'ita.invoice_id')
+            ->select('invoice_customer_names.invoice_id', 'invoice_customer_names.status', 'invoice_customer_names.due_date', 'ita.total_amount')
+            ->get();
+
+        $now = now();
+
+        $stats = [
+            'all' => [
+                'count' => $allInvoices->count(),
+                'total' => $allInvoices->sum('total_amount')
+            ],
+            'paid' => [
+                'count' => $allInvoices->filter(function($invoice) use ($now) {
+                    return $invoice->status === 'paid';
+                })->count(),
+                'total' => $allInvoices->filter(function($invoice) use ($now) {
+                    return $invoice->status === 'paid';
+                })->sum('total_amount')
+            ],
+            'unpaid' => [
+                'count' => $allInvoices->filter(function($invoice) use ($now) {
+                    $status = strtolower($invoice->status ?? '');
+                    // Unpaid if status is not paid/cancelled/draft, or if due date has passed and not paid
+                    if (in_array($status, ['paid', 'cancelled', 'draft'])) {
+                        return false;
+                    }
+                    // If due date exists and has passed, consider it unpaid/overdue
+                    if ($invoice->due_date) {
+                        try {
+                            $dueDate = Carbon::parse($invoice->due_date);
+                            return $dueDate->isPast();
+                        } catch (\Exception $e) {
+                            return true; // If date parsing fails, consider unpaid
+                        }
+                    }
+                    // If no status and no due date, consider unpaid
+                    return empty($status);
+                })->count(),
+                'total' => $allInvoices->filter(function($invoice) use ($now) {
+                    $status = strtolower($invoice->status ?? '');
+                    if (in_array($status, ['paid', 'cancelled', 'draft'])) {
+                        return false;
+                    }
+                    if ($invoice->due_date) {
+                        try {
+                            $dueDate = \Carbon\Carbon::parse($invoice->due_date);
+                            return $dueDate->isPast();
+                        } catch (\Exception $e) {
+                            return true;
+                        }
+                    }
+                    return empty($status);
+                })->sum('total_amount')
+            ],
+            'cancelled' => [
+                'count' => $allInvoices->filter(function($invoice) {
+                    return strtolower($invoice->status ?? '') === 'cancelled';
+                })->count(),
+                'total' => $allInvoices->filter(function($invoice) {
+                    return strtolower($invoice->status ?? '') === 'cancelled';
+                })->sum('total_amount')
+            ]
+        ];
+
+        return view('invoices.list_invoices',compact('invoiceList', 'stats'));
     }
 
     /** invoice paid page */
@@ -61,10 +138,13 @@ class InvoiceController extends Controller
     /** invoice grid */
     public function invoiceGrid()
     {
-        $invoiceList = InvoiceDetails::join('invoice_customer_names as icn', 'invoice_details.invoice_id', 'icn.invoice_id')
-            ->join('invoice_total_amounts as ita', 'invoice_details.invoice_id', 'ita.invoice_id') // Add this line for the additional join
-            ->select('invoice_details.invoice_id','icn.customer_name','ita.total_amount')
-            ->distinct('icn.invoice_id')
+        // Get all invoices from invoice_customer_names (the main table) and join related data
+        $invoiceList = InvoiceCustomerName::leftJoin('invoice_total_amounts as ita', 'invoice_customer_names.invoice_id', 'ita.invoice_id')
+            ->select('invoice_customer_names.invoice_id',
+                     'invoice_customer_names.customer_name', 
+                     'ita.total_amount', 
+                     'invoice_customer_names.due_date')
+            ->orderBy('invoice_customer_names.created_at', 'desc')
             ->get();
         return view('invoices.grid_invoice',compact('invoiceList'));
     }
@@ -72,8 +152,7 @@ class InvoiceController extends Controller
     /** invoice add page */
     public function invoiceAdd()
     {
-        $users = User::whereIn('role_name',['Student','Client'])->get();
-        return view('invoices.invoice_add',compact('users'));
+        return view('invoices.invoice_add');
     }
 
     /** save record incoice */
@@ -83,13 +162,15 @@ class InvoiceController extends Controller
             'customer_name' => 'required|string',
             'po_number'  => 'required|string',
             'due_date'   => 'required|string',
-            'items.*'    => 'required|string',
-            'category.*' => 'required|string',
-            'quantity.*' => 'required|string',
-            'price.*'    => 'required|string',
-            'amount.*'   => 'required|string',
-            'discount.*' => 'required|string',
-            'name_of_the_signatuaory' => 'required|string',
+            'items'      => 'required|array|min:1',
+            'items.*'    => 'nullable|string',
+            'category.*' => 'nullable|string',
+            'quantity.*' => 'nullable|string',
+            'price.*'    => 'nullable|string',
+            'amount.*'   => 'nullable|string',
+            'discount.*' => 'nullable|string',
+            'name_of_the_signatuaory' => 'nullable|string',
+            'total_amount' => 'nullable|numeric',
         ]);
         
         DB::beginTransaction();
@@ -98,7 +179,7 @@ class InvoiceController extends Controller
             $customerName                    = new InvoiceCustomerName;
             $customerName->customer_name     = $request->customer_name;
             $customerName->po_number         = $request->po_number;
-            $customerName->date              = $request->date;
+            $customerName->date              = $request->date ?? date('d-m-Y');
             $customerName->due_date          = $request->due_date;
             $customerName->enable_tax        = $request->enable_tax;
             $customerName->recurring_incoice = $request->recurring_incoice;
@@ -106,20 +187,49 @@ class InvoiceController extends Controller
             $customerName->month             = $request->month;
             $customerName->invoice_from      = $request->invoice_from;
             $customerName->invoice_to        = $request->invoice_to;
+            $customerName->status            = 'unpaid'; // Default status
             $customerName->save();
 
-            /** invoice id last record */
-            $invoiceId = InvoiceCustomerName::select('invoice_id')->orderBy('id', 'DESC')->first();
+            // Get invoice_id from the saved model (it's auto-generated in boot method)
+            $invoiceId = $customerName->invoice_id;
 
-            foreach ($request->items as $key => $values) {
+            // Filter out empty items before saving
+            $items = $request->items ?? [];
+            $categories = $request->category ?? [];
+            $quantities = $request->quantity ?? [];
+            $prices = $request->price ?? [];
+            $amounts = $request->amount ?? [];
+            $discounts = $request->discount ?? [];
+
+            // Ensure at least one valid item
+            $hasValidItem = false;
+            foreach ($items as $key => $item) {
+                if (!empty($item) && !empty($categories[$key] ?? '')) {
+                    $hasValidItem = true;
+                    break;
+                }
+            }
+
+            if (!$hasValidItem) {
+                DB::rollback();
+                Toastr::error('Please add at least one item with a name and category.', 'Validation Error');
+                return redirect()->back()->withInput();
+            }
+
+            foreach ($items as $key => $item) {
+                // Skip empty rows
+                if (empty($item) || empty($categories[$key] ?? '')) {
+                    continue;
+                }
+
                 $InvoiceDetails             = new InvoiceDetails;
-                $InvoiceDetails->invoice_id = $invoiceId->invoice_id;
-                $InvoiceDetails->items      = $request->items[$key];
-                $InvoiceDetails->category   = $request->category[$key];
-                $InvoiceDetails->quantity   = $request->quantity[$key];
-                $InvoiceDetails->price      = $request->price[$key];
-                $InvoiceDetails->amount     = $request->amount[$key];
-                $InvoiceDetails->discount   = $request->discount[$key];
+                $InvoiceDetails->invoice_id = $invoiceId;
+                $InvoiceDetails->items      = $item;
+                $InvoiceDetails->category   = $categories[$key] ?? '';
+                $InvoiceDetails->quantity   = $quantities[$key] ?? '0';
+                $InvoiceDetails->price      = $prices[$key] ?? '0';
+                $InvoiceDetails->amount     = $amounts[$key] ?? '0';
+                $InvoiceDetails->discount   = $discounts[$key] ?? '0';
                 $InvoiceDetails->save();
             }
 
@@ -130,21 +240,29 @@ class InvoiceController extends Controller
                 $upload_sign = 'NULL';
             }
 
+            // Calculate total amount if not provided
+            $calculatedTotal = 0;
+            foreach ($items as $key => $item) {
+                if (!empty($item) && !empty($categories[$key] ?? '')) {
+                    $calculatedTotal += floatval($amounts[$key] ?? 0);
+                }
+            }
+
             /** InvoiceTotalAmount */
             $InvoiceTotalAmount                          = new InvoiceTotalAmount;
-            $InvoiceTotalAmount->invoice_id              = $invoiceId->invoice_id;
-            $InvoiceTotalAmount->taxable_amount          = $request->taxable_amount;
-            $InvoiceTotalAmount->round_off               = $request->round_off;
-            $InvoiceTotalAmount->total_amount            = $request->total_amount;
+            $InvoiceTotalAmount->invoice_id              = $invoiceId;
+            $InvoiceTotalAmount->taxable_amount          = $request->taxable_amount ?? $calculatedTotal;
+            $InvoiceTotalAmount->round_off               = $request->round_off ?? 0;
+            $InvoiceTotalAmount->total_amount            = $request->total_amount ?? $calculatedTotal;
             $InvoiceTotalAmount->upload_sign             = $upload_sign;
-            $InvoiceTotalAmount->name_of_the_signatuaory = $request->name_of_the_signatuaory;
+            $InvoiceTotalAmount->name_of_the_signatuaory = $request->name_of_the_signatuaory ?? '';
             $InvoiceTotalAmount->save();
 
             /** InvoiceAdditionalCharges */
             if(!empty($request->service_charge)) {
                 foreach ($request->service_charge as $key => $values) {
                     $InvoiceAdditionalCharges                 = new InvoiceAdditionalCharges;
-                    $InvoiceAdditionalCharges->invoice_id     = $invoiceId->invoice_id;
+                    $InvoiceAdditionalCharges->invoice_id     = $invoiceId;
                     $InvoiceAdditionalCharges->service_charge = $request->service_charge[$key];
                     $InvoiceAdditionalCharges->save();
                 }
@@ -153,7 +271,7 @@ class InvoiceController extends Controller
             if (!empty($request->offer_new)) {
                 foreach ($request->offer_new as $key => $values) {
                     $InvoiceDiscount             = new InvoiceDiscount;
-                    $InvoiceDiscount->invoice_id = $invoiceId->invoice_id;
+                    $InvoiceDiscount->invoice_id = $invoiceId;
                     $InvoiceDiscount->offer_new  = $request->offer_new[$key];
                     $InvoiceDiscount->save();
                 }
@@ -161,23 +279,33 @@ class InvoiceController extends Controller
 
             /** InvoicePaymentDetails */
             $InvoicePaymentDetails                            = new InvoicePaymentDetails;
-            $InvoicePaymentDetails->invoice_id                = $invoiceId->invoice_id;
-            $InvoicePaymentDetails->account_holder_name       = $request->account_holder_name;
-            $InvoicePaymentDetails->bank_name                 = $request->bank_name;
-            $InvoicePaymentDetails->ifsc_code                 = $request->ifsc_code;
-            $InvoicePaymentDetails->account_number            = $request->account_number;
-            $InvoicePaymentDetails->add_terms_and_Conditions  = $request->add_terms_and_Conditions;
-            $InvoicePaymentDetails->add_notes                 = $request->add_notes;
+            $InvoicePaymentDetails->invoice_id                = $invoiceId;
+            $InvoicePaymentDetails->account_holder_name       = $request->account_holder_name ?? null;
+            $InvoicePaymentDetails->bank_name                 = $request->bank_name ?? null;
+            $InvoicePaymentDetails->ifsc_code                 = $request->ifsc_code ?? null;
+            $InvoicePaymentDetails->account_number            = $request->account_number ?? null;
+            $InvoicePaymentDetails->add_terms_and_Conditions  = $request->add_terms_and_Conditions ?? null;
+            $InvoicePaymentDetails->add_notes                 = $request->add_notes ?? null;
             $InvoicePaymentDetails->save();
 
-            Toastr::success('Has been add successfully :)','Success');
             DB::commit();
-            return redirect()->back();
+            
+            // Log success for debugging
+            \Log::info('Invoice created successfully', [
+                'invoice_id' => $invoiceId,
+                'customer_name' => $request->customer_name,
+                'items_count' => count(array_filter($items, function($item) { return !empty($item); }))
+            ]);
+            
+            Toastr::success('Invoice has been added successfully!','Success');
+            return redirect()->route('invoice/list/page');
         } catch(\Exception $e) {
             DB::rollback();
-            \Log::info($e);
-            Toastr::error('fail, Add new student  :)','Error');
-            return redirect()->back();
+            \Log::error('Invoice save failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ', $request->all());
+            Toastr::error('Failed to add invoice: ' . $e->getMessage(),'Error');
+            return redirect()->back()->withInput();
         }
     }
 
@@ -194,12 +322,11 @@ class InvoiceController extends Controller
             ->where('icn.invoice_id',$invoice_id)
             ->first();
 
-        $users = User::all();
         $invoiceDetails    = InvoiceDetails::where('invoice_id',$invoice_id)->get();
         $AdditionalCharges = InvoiceAdditionalCharges::where('invoice_id',$invoice_id)->get();
         $InvoiceDiscount   = InvoiceDiscount::where('invoice_id',$invoice_id)->get();
 
-        return view('invoices.invoice_edit',compact('invoiceView','users','invoiceDetails','AdditionalCharges','InvoiceDiscount'));
+        return view('invoices.invoice_edit',compact('invoiceView','invoiceDetails','AdditionalCharges','InvoiceDiscount'));
     }
 
     /** update record */

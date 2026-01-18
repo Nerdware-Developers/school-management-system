@@ -47,4 +47,11 @@ return [
         'environment' => env('DARAJA_ENVIRONMENT', 'sandbox'), // sandbox or production
     ],
 
+    'n8n' => [
+        'enabled' => env('N8N_ENABLED', false),
+        'webhook_url' => env('N8N_WEBHOOK_URL'),
+        'timeout' => env('N8N_TIMEOUT', 10),
+        'api_key' => env('N8N_API_KEY', 'your-secret-api-key-here'),
+    ],
+
 ];

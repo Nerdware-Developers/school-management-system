@@ -9,8 +9,7 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use Illuminate\Support\Facades\DB;
 use Brian2694\Toastr\Facades\Toastr;
-// Note: Install DomPDF package: composer require barryvdh/laravel-dompdf
-// use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportCardController extends Controller
 {
@@ -145,13 +144,11 @@ class ReportCardController extends Controller
             'attendanceStats' => $attendanceStats,
         ];
 
-        // TODO: Install DomPDF: composer require barryvdh/laravel-dompdf
-        // Then uncomment the following lines:
-        // $pdf = Pdf::loadView('report-cards.pdf', $data);
-        // return $pdf->download("Report_Card_{$student->first_name}_{$student->last_name}_{$term}_{$examType}.pdf");
-        
-        // Temporary: Return view until DomPDF is installed
-        return view('report-cards.pdf', $data);
+        // Generate PDF report card
+        $pdf = Pdf::loadView('report-cards.pdf', $data);
+        $filename = "Report_Card_{$student->first_name}_{$student->last_name}_{$term}_{$examType}.pdf";
+        $filename = str_replace(' ', '_', $filename);
+        return $pdf->download($filename);
     }
 
     /**
@@ -215,13 +212,11 @@ class ReportCardController extends Controller
             'transcriptData' => $transcriptData,
         ];
 
-        // TODO: Install DomPDF: composer require barryvdh/laravel-dompdf
-        // Then uncomment the following lines:
-        // $pdf = Pdf::loadView('report-cards.transcript', $data);
-        // return $pdf->download("Transcript_{$student->first_name}_{$student->last_name}.pdf");
-        
-        // Temporary: Return view until DomPDF is installed
-        return view('report-cards.transcript', $data);
+        // Generate PDF transcript
+        $pdf = Pdf::loadView('report-cards.transcript', $data);
+        $filename = "Transcript_{$student->first_name}_{$student->last_name}.pdf";
+        $filename = str_replace(' ', '_', $filename);
+        return $pdf->download($filename);
     }
 
     /**

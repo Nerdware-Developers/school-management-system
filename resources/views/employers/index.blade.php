@@ -53,53 +53,68 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($employers as $employer)
+                                    @forelse($employees as $employee)
                                     <tr>
                                         <td>
                                             <div class="form-check check-tables">
                                                 <input class="form-check-input" type="checkbox" value="something">
                                             </div>
                                         </td>
-                                        <td>{{ $employer->employee_id }}</td>
+                                        <td>{{ $employee->employee_id ?? $employee->user_id ?? 'N/A' }}</td>
                                         <td>
                                             <h2 class="table-avatar">
-                                                <a href="{{ route('employers.show', $employer->id) }}">
-                                                    {{ $employer->full_name }}
-                                                </a>
+                                                @if(isset($employee->type) && $employee->type === 'teacher')
+                                                    <a href="{{ url('teacher/profile/' . $employee->id) }}">
+                                                        {{ $employee->full_name }}
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('employers.show', $employee->id) }}">
+                                                        {{ $employee->full_name }}
+                                                    </a>
+                                                @endif
                                             </h2>
                                         </td>
-                                        <td>{{ $employer->position ?? 'N/A' }}</td>
-                                        <td>{{ $employer->department ?? 'N/A' }}</td>
-                                        <td>{{ $employer->gender ?? 'N/A' }}</td>
-                                        <td>{{ $employer->phone_number ?? 'N/A' }}</td>
-                                        <td>{{ $employer->email ?? 'N/A' }}</td>
+                                        <td>{{ $employee->position ?? 'N/A' }}</td>
+                                        <td>{{ $employee->department ?? 'N/A' }}</td>
+                                        <td>{{ $employee->gender ?? 'N/A' }}</td>
+                                        <td>{{ $employee->phone_number ?? 'N/A' }}</td>
+                                        <td>{{ $employee->email ?? 'N/A' }}</td>
                                         <td class="text-end">
                                             <div class="actions">
-                                                <a href="{{ route('employers.show', $employer->id) }}" class="btn btn-sm bg-success-light">
-                                                    <i class="far fa-eye me-2"></i>View
-                                                </a>
-                                                <a href="{{ route('employers.edit', $employer->id) }}" class="btn btn-sm bg-danger-light">
-                                                    <i class="far fa-edit me-2"></i>
-                                                </a>
-                                                <a href="javascript:void(0);" 
-                                                   class="btn btn-sm bg-danger-light employer_delete" 
-                                                   data-bs-toggle="modal" 
-                                                   data-bs-target="#employerDelete"
-                                                   data-id="{{ $employer->id }}">
-                                                    <i class="far fa-trash-alt me-2"></i>
-                                                </a>
+                                                @if(isset($employee->type) && $employee->type === 'teacher')
+                                                    <a href="{{ url('teacher/profile/' . $employee->id) }}" class="btn btn-sm bg-success-light">
+                                                        <i class="far fa-eye me-2"></i>View
+                                                    </a>
+                                                    <a href="{{ url('teacher/edit/' . $employee->id) }}" class="btn btn-sm bg-danger-light">
+                                                        <i class="far fa-edit me-2"></i>
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('employers.show', $employee->id) }}" class="btn btn-sm bg-success-light">
+                                                        <i class="far fa-eye me-2"></i>View
+                                                    </a>
+                                                    <a href="{{ route('employers.edit', $employee->id) }}" class="btn btn-sm bg-danger-light">
+                                                        <i class="far fa-edit me-2"></i>
+                                                    </a>
+                                                    <a href="javascript:void(0);" 
+                                                       class="btn btn-sm bg-danger-light employer_delete" 
+                                                       data-bs-toggle="modal" 
+                                                       data-bs-target="#employerDelete"
+                                                       data-id="{{ $employee->id }}">
+                                                        <i class="far fa-trash-alt me-2"></i>
+                                                    </a>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="9" class="text-center">No employers found.</td>
+                                        <td colspan="9" class="text-center">No employees found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                             <div class="d-flex justify-content-end mt-3">
-                                {{ $employers->links() }}
+                                {{ $employees->links() }}
                             </div>
                         </div>
                     </div>

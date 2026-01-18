@@ -24,7 +24,7 @@ class TimetableController extends Controller
         if ($selectedClassId) {
             $timetable = Timetable::where('class_id', $selectedClassId)
                 ->with(['subject', 'teacher', 'classe'])
-                ->orderByRaw("FIELD(day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
+                ->orderByRaw("FIELD(day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')")
                 ->orderBy('period_number')
                 ->get()
                 ->groupBy('day');
@@ -50,7 +50,7 @@ class TimetableController extends Controller
             $teachers = collect();
         }
 
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         $periods = [
             ['number' => 1, 'name' => 'Period 1', 'start' => '08:00', 'end' => '09:00'],
             ['number' => 2, 'name' => 'Period 2', 'start' => '09:00', 'end' => '10:00'],
@@ -73,7 +73,7 @@ class TimetableController extends Controller
         $validated = $request->validate([
             'class_id' => 'required|exists:classes,id',
             'timetable' => 'required|array',
-            'timetable.*.day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'timetable.*.day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday',
             'timetable.*.period_number' => 'required|integer|min:1',
             'timetable.*.subject_id' => 'nullable|exists:subjects,id',
             'timetable.*.teacher_id' => 'nullable|exists:teachers,id',
@@ -96,6 +96,40 @@ class TimetableController extends Controller
                 // Validate end time is after start time
                 if (strtotime($entry['end_time']) <= strtotime($entry['start_time'])) {
                     throw new \Exception("End time must be after start time for {$entry['day']} Period {$entry['period_number']}");
+                }
+
+                // Check for teacher time collisions if teacher is assigned
+                if (!empty($entry['teacher_id'])) {
+                    $collisions = Timetable::where('teacher_id', $entry['teacher_id'])
+                        ->where('day', $entry['day'])
+                        ->where('class_id', '!=', $validated['class_id']) // Different class
+                        ->where(function ($query) use ($entry) {
+                            // Check for time overlap
+                            $query->where(function ($q) use ($entry) {
+                                // New start time is within existing period
+                                $q->where('start_time', '<=', $entry['start_time'])
+                                  ->where('end_time', '>', $entry['start_time']);
+                            })->orWhere(function ($q) use ($entry) {
+                                // New end time is within existing period
+                                $q->where('start_time', '<', $entry['end_time'])
+                                  ->where('end_time', '>=', $entry['end_time']);
+                            })->orWhere(function ($q) use ($entry) {
+                                // New period completely contains existing period
+                                $q->where('start_time', '>=', $entry['start_time'])
+                                  ->where('end_time', '<=', $entry['end_time']);
+                            });
+                        })
+                        ->with(['classe', 'subject'])
+                        ->get();
+
+                    if ($collisions->count() > 0) {
+                        $collision = $collisions->first();
+                        throw new \Exception(
+                            "Teacher collision detected! The teacher already has a lesson in " .
+                            "{$collision->classe->class_name} ({$collision->subject->subject_name}) " .
+                            "on {$entry['day']} at {$collision->start_time->format('H:i')}-{$collision->end_time->format('H:i')}"
+                        );
+                    }
                 }
 
                 Timetable::create([
@@ -133,6 +167,94 @@ class TimetableController extends Controller
             Toastr::error('Failed to delete timetable: ' . $e->getMessage(), 'Error');
         }
         return redirect()->route('timetable.index');
+    }
+
+    /**
+     * Get teacher assigned to a subject for a specific class
+     */
+    public function getTeacherForSubject(Request $request)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'class_id' => 'required|exists:classes,id',
+        ]);
+
+        $assignment = \App\Models\TeacherSubjectClass::where('subject_id', $request->subject_id)
+            ->where('class_id', $request->class_id)
+            ->with('teacher')
+            ->first();
+
+        if ($assignment && $assignment->teacher) {
+            return response()->json([
+                'success' => true,
+                'teacher_id' => $assignment->teacher->id,
+                'teacher_name' => $assignment->teacher->full_name,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No teacher assigned to this subject for this class',
+        ]);
+    }
+
+    /**
+     * Check if teacher has a time collision
+     */
+    public function checkTeacherCollision(Request $request)
+    {
+        $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+            'day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
+            'class_id' => 'required|exists:classes,id',
+            'exclude_period' => 'nullable|integer', // Period number to exclude (for editing)
+        ]);
+
+        $collisions = Timetable::where('teacher_id', $request->teacher_id)
+            ->where('day', $request->day)
+            ->where(function ($query) use ($request) {
+                // Check for time overlap
+                $query->where(function ($q) use ($request) {
+                    // New start time is within existing period
+                    $q->where('start_time', '<=', $request->start_time)
+                      ->where('end_time', '>', $request->start_time);
+                })->orWhere(function ($q) use ($request) {
+                    // New end time is within existing period
+                    $q->where('start_time', '<', $request->end_time)
+                      ->where('end_time', '>=', $request->end_time);
+                })->orWhere(function ($q) use ($request) {
+                    // New period completely contains existing period
+                    $q->where('start_time', '>=', $request->start_time)
+                      ->where('end_time', '<=', $request->end_time);
+                });
+            })
+            ->where('class_id', '!=', $request->class_id); // Different class
+
+        // Exclude current period if editing
+        if ($request->filled('exclude_period')) {
+            $collisions->where('period_number', '!=', $request->exclude_period);
+        }
+
+        $collision = $collisions->with(['classe', 'subject'])->first();
+
+        if ($collision) {
+            return response()->json([
+                'has_collision' => true,
+                'message' => "Teacher already has a lesson in {$collision->classe->class_name} ({$collision->subject->subject_name}) at this time",
+                'collision' => [
+                    'class' => $collision->classe->class_name,
+                    'subject' => $collision->subject->subject_name,
+                    'day' => $collision->day,
+                    'time' => $collision->start_time->format('H:i') . ' - ' . $collision->end_time->format('H:i'),
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'has_collision' => false,
+        ]);
     }
 }
 

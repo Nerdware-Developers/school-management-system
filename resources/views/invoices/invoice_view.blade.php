@@ -101,10 +101,10 @@
                                                         <tr>
                                                             <td>{{ $value->items }}</td>
                                                             <td>{{ $value->category }}</td>
-                                                            <td>${{ $value->amount }}</td>
+                                                            <td>Ksh {{ number_format($value->amount, 2) }}</td>
                                                             <th>{{ $value->quantity }}</th>
                                                             <th>{{ $value->discount }}%</th>
-                                                            <td class="text-end">${{ $value->price }}</td>
+                                                            <td class="text-end">Ksh {{ number_format($value->price, 2) }}</td>
                                                         </tr>
                                                     @endforeach
                                                 </tbody>
@@ -129,13 +129,13 @@
                                     <div class="invoice-total-card">
                                         <div class="invoice-total-box">
                                             <div class="invoice-total-inner">
-                                                <p>Taxable <span>$6,660.00</span></p>
-                                                <p>Additional Charges <span>$6,660.00</span></p>
-                                                <p>Discount <span>$3,300.00</span></p>
-                                                <p class="mb-0">Sub total <span>$3,300.00</span></p>
+                                                <p>Taxable <span>Ksh {{ number_format($invoiceView->taxable_amount ?? 0, 2) }}</span></p>
+                                                <p>Additional Charges <span>Ksh {{ number_format($invoiceView->additional_charges ?? 0, 2) }}</span></p>
+                                                <p>Discount <span>Ksh {{ number_format($invoiceView->discount ?? 0, 2) }}</span></p>
+                                                <p class="mb-0">Sub total <span>Ksh {{ number_format(($invoiceView->taxable_amount ?? 0) - ($invoiceView->discount ?? 0), 2) }}</span></p>
                                             </div>
                                             <div class="invoice-total-footer">
-                                                <h4>Total Amount <span>${{ $invoiceView->total_amount }}</span></h4>
+                                                <h4>Total Amount <span>Ksh {{ number_format($invoiceView->total_amount, 2) }}</span></h4>
                                             </div>
                                         </div>
                                     </div>

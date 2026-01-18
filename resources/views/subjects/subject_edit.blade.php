@@ -50,7 +50,10 @@
                                             <select class="form-control @error('teacher_name') is-invalid @enderror" name="teacher_name">
                                                 <option value="">Select Teacher (Optional)</option>
                                                 @foreach($teachers as $teacher)
-                                                    <option value="{{ $teacher->full_name }}" {{ old('teacher_name', $subjectEdit->teacher_name) == $teacher->full_name ? 'selected' : '' }}>{{ $teacher->full_name }}</option>
+                                                    <option value="{{ $teacher->full_name }}" 
+                                                        {{ old('teacher_name', $subjectEdit->current_teacher_name ?? $subjectEdit->teacher_name) == $teacher->full_name ? 'selected' : '' }}>
+                                                        {{ $teacher->full_name }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                             @error('teacher_name')

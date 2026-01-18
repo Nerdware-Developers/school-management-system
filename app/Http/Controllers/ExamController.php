@@ -5,15 +5,23 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Exam;
 use App\Models\Subject;
+use App\Models\ExamResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
 use App\Models\Student;
 use App\Models\Classe;
+use App\Services\NotificationService;
 use Brian2694\Toastr\Facades\Toastr;
 
 class ExamController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     public function index()
     {
         // Group exams by exam_type, term, and class_id
@@ -220,6 +228,10 @@ class ExamController extends Controller
             }
 
             DB::commit();
+            
+            // Send notifications to parents after marks are saved
+            $this->sendExamResultNotifications($validated['exam_type'], $validated['term'], $validated['class_id']);
+            
             Toastr::success("Successfully saved {$savedCount} marks!", 'Success');
             return redirect()->route('exam.enter-marks', [
                 'exam_type' => $validated['exam_type'],
@@ -445,5 +457,133 @@ class ExamController extends Controller
     public function resultsSave(Request $request)
     {
         return $this->saveMarks($request);
+    }
+
+    /**
+     * Get exam IDs by groups (for bulk delete)
+     */
+    public function getExamIdsByGroups(Request $request)
+    {
+        $request->validate([
+            'groups' => 'required|array',
+            'groups.*.exam_type' => 'required|string',
+            'groups.*.term' => 'required|string',
+            'groups.*.class_id' => 'required|integer',
+        ]);
+
+        try {
+            $examIds = [];
+            foreach ($request->groups as $group) {
+                $ids = Exam::where('exam_type', $group['exam_type'])
+                    ->where('term', $group['term'])
+                    ->where('class_id', $group['class_id'])
+                    ->pluck('id')
+                    ->toArray();
+                $examIds = array_merge($examIds, $ids);
+            }
+
+            return response()->json([
+                'success' => true,
+                'exam_ids' => array_unique($examIds)
+            ]);
+        } catch(\Exception $e) {
+            \Log::error('Get exam IDs by groups failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve exam IDs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete exams
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'exam_ids' => 'required|array',
+            'exam_ids.*' => 'required|integer|exists:exams,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $examIds = $request->exam_ids;
+            
+            // Delete related exam results
+            DB::table('exam_results')->whereIn('exam_id', $examIds)->delete();
+            
+            // Delete exams
+            $deletedCount = Exam::whereIn('id', $examIds)->delete();
+            
+            DB::commit();
+            Toastr::success("Successfully deleted {$deletedCount} exam(s)", 'Success');
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} exam(s)",
+                'deleted_count' => $deletedCount
+            ]);
+        } catch(\Exception $e) {
+            DB::rollBack();
+            \Log::error('Bulk delete exams failed: ' . $e->getMessage());
+            Toastr::error('Failed to delete exams', 'Error');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete exams'
+            ], 500);
+        }
+    }
+
+    /**
+     * Send exam result notifications to parents
+     */
+    private function sendExamResultNotifications($examType, $term, $classId)
+    {
+        try {
+            $class = Classe::findOrFail($classId);
+            $exams = Exam::where('exam_type', $examType)
+                ->where('term', $term)
+                ->where('class_id', $classId)
+                ->get();
+
+            if ($exams->isEmpty()) {
+                return;
+            }
+
+            $students = Student::where('class', $class->class_name)->get();
+
+            foreach ($students as $student) {
+                $results = [];
+                foreach ($exams as $exam) {
+                    $examResult = ExamResult::where('exam_id', $exam->id)
+                        ->where('student_id', $student->id)
+                        ->first();
+
+                    if ($examResult) {
+                        $results[] = [
+                            'subject' => $exam->subject,
+                            'marks' => (float)$examResult->marks,
+                            'total_marks' => $exam->total_marks ?? 100,
+                        ];
+                    }
+                }
+
+                if (!empty($results)) {
+                    $examName = ucfirst($examType) . ' - ' . $term;
+                    $this->notificationService->sendExamResults($student->id, [
+                        'exam_id' => $exams->first()->id,
+                        'exam_name' => $examName,
+                        'term' => $term,
+                        'results' => $results,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send exam result notifications', [
+                'error' => $e->getMessage(),
+                'exam_type' => $examType,
+                'term' => $term,
+                'class_id' => $classId,
+            ]);
+        }
     }
 }

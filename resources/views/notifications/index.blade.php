@@ -33,15 +33,40 @@
                             </thead>
                             <tbody>
                                 @foreach($notifications as $notification)
-                                    <tr class="{{ $notification->is_read ? '' : 'table-warning' }}">
+                                    <tr class="{{ $notification->is_read ? '' : 'table-warning' }}" id="notification-row-{{ $notification->id }}">
                                         <td>
-                                            <span class="badge bg-{{ $notification->type === 'error' ? 'danger' : ($notification->type === 'success' ? 'success' : 'info') }}">
-                                                {{ ucfirst($notification->type) }}
+                                            @php
+                                                $badgeColors = [
+                                                    'info' => 'info',
+                                                    'success' => 'success',
+                                                    'warning' => 'warning',
+                                                    'error' => 'danger',
+                                                    'fee' => 'primary',
+                                                    'attendance' => 'info',
+                                                    'exam' => 'warning',
+                                                    'event' => 'primary',
+                                                    'school_date' => 'danger',
+                                                    'parent_exam' => 'success',
+                                                    'parent_event' => 'info',
+                                                    'parent_fee' => 'warning'
+                                                ];
+                                                $badgeColor = $badgeColors[$notification->type] ?? 'secondary';
+                                            @endphp
+                                            <span class="badge bg-{{ $badgeColor }}">
+                                                {{ ucfirst(str_replace('_', ' ', $notification->type)) }}
                                             </span>
                                         </td>
-                                        <td>{{ $notification->title }}</td>
-                                        <td>{{ Str::limit($notification->message, 50) }}</td>
-                                        <td>{{ $notification->created_at->diffForHumans() }}</td>
+                                        <td>
+                                            <strong>{{ $notification->title }}</strong>
+                                            @if(!$notification->is_read)
+                                                <span class="badge bg-danger rounded-circle ms-1" style="width: 8px; height: 8px; padding: 0;"></span>
+                                            @endif
+                                        </td>
+                                        <td>{{ Str::limit($notification->message, 80) }}</td>
+                                        <td>
+                                            <small class="text-muted">{{ $notification->created_at->format('M d, Y') }}</small><br>
+                                            <small class="text-muted">{{ $notification->created_at->format('h:i A') }}</small>
+                                        </td>
                                         <td>
                                             @if($notification->is_read)
                                                 <span class="badge bg-success">Read</span>
@@ -50,13 +75,25 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($notification->link)
-                                                <a href="{{ $notification->link }}" class="btn btn-sm btn-primary">View</a>
+                                            @if(!$notification->is_read)
+                                                <form action="{{ route('notifications.mark-read', $notification->id) }}" method="POST" style="display: inline;" class="mark-read-form">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Mark as read">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </form>
                                             @endif
-                                            <form action="{{ route('notifications.destroy', $notification->id) }}" method="POST" style="display: inline;">
+                                            @if($notification->link)
+                                                <a href="{{ $notification->link }}" class="btn btn-sm btn-primary" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            @endif
+                                            <form action="{{ route('notifications.destroy', $notification->id) }}" method="POST" style="display: inline;" class="delete-notification-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this notification?')" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </form>
                                         </td>
                                     </tr>
@@ -76,5 +113,66 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+<script>
+    $(document).ready(function() {
+        // Handle mark as read with AJAX
+        $('.mark-read-form').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var notificationId = form.find('button').data('id') || form.attr('action').split('/').pop();
+            var row = $('#notification-row-' + notificationId);
+            
+            $.ajax({
+                url: form.attr('action'),
+                method: 'POST',
+                data: form.serialize(),
+                success: function() {
+                    row.removeClass('table-warning');
+                    row.find('.badge.bg-warning').replaceWith('<span class="badge bg-success">Read</span>');
+                    row.find('.mark-read-form').remove();
+                    row.find('td:nth-child(2) .badge.bg-danger').remove();
+                    toastr.success('Notification marked as read');
+                },
+                error: function() {
+                    toastr.error('Failed to mark notification as read');
+                }
+            });
+        });
+
+        // Handle delete with AJAX
+        $('.delete-notification-form').on('submit', function(e) {
+            e.preventDefault();
+            if (!confirm('Are you sure you want to delete this notification?')) {
+                return;
+            }
+            
+            var form = $(this);
+            var notificationId = form.attr('action').split('/').pop();
+            var row = $('#notification-row-' + notificationId);
+            
+            $.ajax({
+                url: form.attr('action'),
+                method: 'DELETE',
+                data: form.serialize(),
+                success: function() {
+                    row.fadeOut(300, function() {
+                        $(this).remove();
+                        // Check if table is empty
+                        if ($('tbody tr').length === 0) {
+                            location.reload();
+                        }
+                    });
+                    toastr.success('Notification deleted');
+                },
+                error: function() {
+                    toastr.error('Failed to delete notification');
+                }
+            });
+        });
+    });
+</script>
 @endsection
 

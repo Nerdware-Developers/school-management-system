@@ -18,6 +18,17 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+        
+        // N8N Webhook Events
+        \App\Events\StudentCreated::class => [
+            \App\Listeners\SendN8nWebhook::class,
+        ],
+        \App\Events\PaymentReceived::class => [
+            \App\Listeners\SendN8nWebhook::class,
+        ],
+        \App\Events\ExamResultsPublished::class => [
+            \App\Listeners\SendN8nWebhook::class,
+        ],
     ];
 
     /**

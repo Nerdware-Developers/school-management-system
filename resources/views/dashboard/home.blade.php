@@ -1,6 +1,19 @@
 @extends('layouts.master')
 
 @section('content')
+<style>
+    /* Animation for pending fees card update */
+    .flash-update {
+        animation: flashUpdate 0.5s ease-in-out;
+        border: 2px solid #f59e0b !important;
+    }
+    
+    @keyframes flashUpdate {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); background-color: #fef3c7 !important; }
+        100% { transform: scale(1); }
+    }
+</style>
 <div class="page-wrapper" style="background-color: #f9f9ff; min-height: 100vh;">
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -76,13 +89,13 @@
             </div>
 
             <div class="col-md-3">
-                <div class="card shadow-sm border-0" style="background-color:#fef3c7; border-radius:15px;">
+                <div class="card shadow-sm border-0" style="background-color:#fef3c7; border-radius:15px;" id="pendingFeesCard">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-1">Pending Fees</h6>
-                            <h4 class="fw-bold">Ksh {{ number_format($pendingFees, 2) }}</h4>
+                            <h4 class="fw-bold" id="pendingFeesAmount">Ksh {{ number_format($pendingFees, 2) }}</h4>
                             <small class="text-warning">
-                                <i class="fas fa-exclamation-triangle"></i> {{ $pendingFeeStudents }} Students
+                                <i class="fas fa-exclamation-triangle"></i> <span id="pendingFeesStudents">{{ $pendingFeeStudents }}</span> Student{{ $pendingFeeStudents != 1 ? 's' : '' }} with Pending Fees
                             </small>
                         </div>
                         <div class="p-3 rounded-circle" style="background-color:#f59e0b;">
@@ -373,6 +386,88 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Check if we're coming from student creation (has refresh parameter)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isFromStudentCreation = urlParams.get('refresh') === 'pending_fees';
+    
+    // Auto-refresh pending fees every 3 seconds
+    // This ensures the pending fees card updates automatically when new students are added
+    function refreshPendingFees(forceRefresh = false) {
+        // Add timestamp to prevent any caching
+        const timestamp = new Date().getTime();
+        const url = '{{ route("home.pending-fees") }}?t=' + timestamp;
+        
+        $.ajax({
+            url: url,
+            method: 'GET',
+            cache: false, // Prevent browser caching
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            success: function(response) {
+                if (response.pendingFees !== undefined) {
+                    const currentAmount = $('#pendingFeesAmount').text();
+                    const currentCount = $('#pendingFeesStudents').text();
+                    
+                    // Update the display
+                    $('#pendingFeesAmount').text(response.formattedPendingFees);
+                    $('#pendingFeesStudents').text(response.pendingFeeStudents);
+                    
+                    // If values changed, add a visual indicator
+                    if (forceRefresh && (currentAmount !== response.formattedPendingFees || currentCount !== response.pendingFeeStudents)) {
+                        $('#pendingFeesCard').addClass('flash-update');
+                        setTimeout(function() {
+                            $('#pendingFeesCard').removeClass('flash-update');
+                        }, 1000);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error refreshing pending fees:', error);
+            }
+        });
+    }
+    
+    // If coming from student creation, refresh immediately and aggressively
+    if (isFromStudentCreation) {
+        // Refresh immediately (no delay)
+        refreshPendingFees(true);
+        
+        // Refresh multiple times in quick succession to catch any timing issues
+        setTimeout(function() { refreshPendingFees(true); }, 50);
+        setTimeout(function() { refreshPendingFees(true); }, 200);
+        setTimeout(function() { refreshPendingFees(true); }, 500);
+        setTimeout(function() { refreshPendingFees(true); }, 1000);
+        
+        // Clean up URL parameter
+        if (window.history && window.history.replaceState) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+    } else {
+        // Normal refresh schedule
+        // Refresh immediately on page load (in case data changed while page was open)
+        setTimeout(refreshPendingFees, 100);
+        
+        // Refresh again after 500ms to catch any delayed commits
+        setTimeout(refreshPendingFees, 500);
+        
+        // Refresh again after 1 second to ensure new students are picked up
+        setTimeout(refreshPendingFees, 1000);
+    }
+    
+    // Then refresh every 3 seconds (for both cases)
+    setInterval(function() { refreshPendingFees(); }, 3000);
+    
+    // Also refresh when the page becomes visible (user switches back to tab)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            refreshPendingFees(true);
+        }
+    });
+    
     // Ensure Chart.js is loaded
     if (typeof Chart === 'undefined') {
         console.error('Chart.js is not loaded');

@@ -6,6 +6,8 @@ use DB;
 use App\Models\Student;
 use App\Models\StudentFeeTerm;
 use App\Models\FeesInformation;
+use App\Models\SchoolSettings;
+use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\Storage;
@@ -71,6 +73,354 @@ class StudentController extends Controller
     return view('student.student', compact('studentList'));
 }
 
+    /**
+     * List students grouped by class with filtering
+     */
+    public function studentsByClass(Request $request)
+    {
+        $query = Student::query();
+
+        // Filter by class
+        if ($request->filled('class')) {
+            $query->where('class', 'LIKE', '%' . $request->class . '%');
+        }
+
+        // Filter by student name
+        if ($request->filled('name')) {
+            $search = trim($request->name);
+            $nameParts = explode(' ', $search);
+
+            if (count($nameParts) >= 2) {
+                $query->where(function ($q) use ($nameParts) {
+                    $q->where('first_name', 'LIKE', "%{$nameParts[0]}%")
+                      ->where('last_name', 'LIKE', "%{$nameParts[1]}%");
+                });
+            } else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('last_name', 'LIKE', "%{$search}%");
+                });
+            }
+        }
+
+        // Filter by balance (fee balance)
+        if ($request->filled('balance_operator') && $request->filled('balance_amount')) {
+            $operator = $request->balance_operator;
+            $amount = (float) $request->balance_amount;
+
+            switch ($operator) {
+                case 'greater':
+                    $query->where('balance', '>', $amount);
+                    break;
+                case 'greater_equal':
+                    $query->where('balance', '>=', $amount);
+                    break;
+                case 'less':
+                    $query->where('balance', '<', $amount);
+                    break;
+                case 'less_equal':
+                    $query->where('balance', '<=', $amount);
+                    break;
+                case 'equal':
+                    $query->where('balance', '=', $amount);
+                    break;
+                case 'not_zero':
+                    $query->where('balance', '!=', 0);
+                    break;
+                case 'zero':
+                    $query->where('balance', '=', 0);
+                    break;
+            }
+        }
+
+        // Get all students and group by class
+        $students = $query->orderBy('class')->orderBy('first_name')->get();
+        
+        // Group students by class
+        $studentsByClass = $students->groupBy('class');
+        
+        // Get all unique classes for filter dropdown
+        $allClasses = Student::distinct()->orderBy('class')->pluck('class');
+
+        return view('student.students-by-class', compact('studentsByClass', 'allClasses'));
+    }
+
+    /**
+     * Export students by class to Excel (CSV format) - respects filters
+     */
+    public function exportStudentsByClass(Request $request)
+    {
+        $query = Student::query();
+        $filters = [];
+
+        // Apply same filters as studentsByClass method
+        if ($request->filled('class')) {
+            $classFilter = trim($request->class);
+            $query->where('class', 'LIKE', '%' . $classFilter . '%');
+            $filters[] = 'class_' . str_replace(' ', '_', $classFilter);
+        }
+
+        if ($request->filled('name')) {
+            $search = trim($request->name);
+            $nameParts = explode(' ', $search);
+
+            if (count($nameParts) >= 2) {
+                $query->where(function ($q) use ($nameParts) {
+                    $q->where('first_name', 'LIKE', "%{$nameParts[0]}%")
+                      ->where('last_name', 'LIKE', "%{$nameParts[1]}%");
+                });
+            } else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('last_name', 'LIKE', "%{$search}%");
+                });
+            }
+            $filters[] = 'name_' . str_replace(' ', '_', $search);
+        }
+
+        // Filter by fee amount
+        if ($request->filled('fee_amount_operator') && $request->filled('fee_amount')) {
+            $operator = $request->fee_amount_operator;
+            $amount = (float) $request->fee_amount;
+
+            switch ($operator) {
+                case 'greater':
+                    $query->where('fee_amount', '>', $amount);
+                    $filters[] = 'fee_gt_' . $amount;
+                    break;
+                case 'greater_equal':
+                    $query->where('fee_amount', '>=', $amount);
+                    $filters[] = 'fee_gte_' . $amount;
+                    break;
+                case 'less':
+                    $query->where('fee_amount', '<', $amount);
+                    $filters[] = 'fee_lt_' . $amount;
+                    break;
+                case 'less_equal':
+                    $query->where('fee_amount', '<=', $amount);
+                    $filters[] = 'fee_lte_' . $amount;
+                    break;
+                case 'equal':
+                    $query->where('fee_amount', '=', $amount);
+                    $filters[] = 'fee_eq_' . $amount;
+                    break;
+            }
+        }
+
+        // Filter by balance (fee balance)
+        if ($request->filled('balance_operator') && $request->filled('balance_amount')) {
+            $operator = $request->balance_operator;
+            $amount = (float) $request->balance_amount;
+
+            switch ($operator) {
+                case 'greater':
+                    $query->where('balance', '>', $amount);
+                    $filters[] = 'balance_gt_' . $amount;
+                    break;
+                case 'greater_equal':
+                    $query->where('balance', '>=', $amount);
+                    $filters[] = 'balance_gte_' . $amount;
+                    break;
+                case 'less':
+                    $query->where('balance', '<', $amount);
+                    $filters[] = 'balance_lt_' . $amount;
+                    break;
+                case 'less_equal':
+                    $query->where('balance', '<=', $amount);
+                    $filters[] = 'balance_lte_' . $amount;
+                    break;
+                case 'equal':
+                    $query->where('balance', '=', $amount);
+                    $filters[] = 'balance_eq_' . $amount;
+                    break;
+                case 'not_zero':
+                    $query->where('balance', '!=', 0);
+                    $filters[] = 'balance_not_zero';
+                    break;
+                case 'zero':
+                    $query->where('balance', '=', 0);
+                    $filters[] = 'balance_zero';
+                    break;
+            }
+        }
+
+        // Get all students (no pagination for export)
+        $students = $query->orderBy('class')->orderBy('first_name')->get();
+
+        // Set headers for CSV download
+        $filterSuffix = !empty($filters) ? '_' . implode('_', $filters) : '';
+        $filename = 'students_by_class' . $filterSuffix . '_' . date('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        // Add BOM for UTF-8 to ensure Excel displays special characters correctly
+        $callback = function() use ($students) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Add CSV headers - simplified: only Admission Number, Student Name, Fee Balance
+            fputcsv($file, [
+                'Admission Number',
+                'Student Name',
+                'Fee Balance'
+            ]);
+
+            // Add student data
+            foreach ($students as $student) {
+                $fullName = trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''));
+                
+                fputcsv($file, [
+                    $student->admission_number ?? '',
+                    $fullName,
+                    $student->balance ?? '0'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Export students to Excel (CSV format)
+     */
+    public function exportExcel(Request $request)
+    {
+        $query = Student::query();
+        $filters = [];
+
+        // Apply same filters as student list
+        if ($request->has('class') && $request->class != '') {
+            $classFilter = trim($request->class);
+            $query->where('class', 'LIKE', '%' . $classFilter . '%');
+            $filters[] = 'class_' . str_replace(' ', '_', $classFilter);
+        }
+
+        if ($request->has('name') && $request->name != '') {
+            $search = trim($request->name);
+            $nameParts = explode(' ', $search);
+
+            if (count($nameParts) >= 2) {
+                $query->where(function ($q) use ($nameParts) {
+                    $q->where('first_name', 'LIKE', "%{$nameParts[0]}%")
+                      ->where('last_name', 'LIKE', "%{$nameParts[1]}%");
+                });
+            } else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('last_name', 'LIKE', "%{$search}%");
+                });
+            }
+            $filters[] = 'name_' . str_replace(' ', '_', $search);
+        }
+
+        // Get all students (no pagination for export)
+        $students = $query->orderBy('class')->orderBy('first_name')->get();
+
+        // Set headers for CSV download
+        $filterSuffix = !empty($filters) ? '_' . implode('_', $filters) : '';
+        $filename = 'students' . $filterSuffix . '_' . date('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        // Add BOM for UTF-8 to ensure Excel displays special characters correctly
+        $callback = function() use ($students) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'Admission Number',
+                'First Name',
+                'Last Name',
+                'Class',
+                'Section',
+                'Date of Birth',
+                'Gender',
+                'Roll',
+                'Parent Name',
+                'Parent Number',
+                'Parent Email',
+                'Parent Relationship',
+                'Guardian Name',
+                'Guardian Number',
+                'Guardian Email',
+                'Address',
+                'Blood Group',
+                'Fee Amount',
+                'Balance',
+                'Financial Year',
+                'Payment Status'
+            ]);
+
+            // Add student data
+            foreach ($students as $student) {
+                // Format date of birth properly for Excel (YYYY-MM-DD format)
+                // Format as text with apostrophe to prevent Excel from auto-formatting
+                $dateOfBirth = '';
+                if ($student->date_of_birth) {
+                    try {
+                        $date = \Carbon\Carbon::parse($student->date_of_birth);
+                        // Prefix with apostrophe to force Excel to treat as text
+                        // This prevents the ######## display issue when column is narrow
+                        $dateOfBirth = "'" . $date->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $dateOfBirth = "'" . $student->date_of_birth;
+                    }
+                }
+                
+                // Format phone numbers as text (prefix with apostrophe) to prevent scientific notation
+                // Excel will treat values starting with ' as text
+                $parentNumber = $student->parent_number ? "'" . $student->parent_number : '';
+                $guardianNumber = $student->guardian_number ? "'" . $student->guardian_number : '';
+                
+                fputcsv($file, [
+                    $student->admission_number ?? '',
+                    $student->first_name ?? '',
+                    $student->last_name ?? '',
+                    $student->class ?? '',
+                    $student->section ?? '',
+                    $dateOfBirth,
+                    $student->gender ?? '',
+                    $student->roll ?? '',
+                    $student->parent_name ?? '',
+                    $parentNumber,
+                    $student->parent_email ?? '',
+                    $student->parent_relationship ?? '',
+                    $student->guardian_name ?? '',
+                    $guardianNumber,
+                    $student->guardian_email ?? '',
+                    $student->address ?? '',
+                    $student->blood_group ?? '',
+                    $student->fee_amount ?? '0',
+                    $student->balance ?? '0',
+                    $student->financial_year ?? '',
+                    $student->payment_status ?? ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 
     /** index page student grid */
     public function studentGrid()
@@ -169,16 +519,78 @@ class StudentController extends Controller
                 $student->image = $safeName;
             }
 
-            $feeAmount = (float) $request->input('fee_amount', 0);
+            // Get default settings if not provided
+            $settings = SchoolSettings::getSettings();
+            
+            // CRITICAL: Always use default_fee_amount from settings if fee_amount is not provided or is 0
+            // This ensures fee terms are created even when financial form is skipped
+            $requestFeeAmount = $request->input('fee_amount');
+            if ($requestFeeAmount === null || $requestFeeAmount === '' || (float)$requestFeeAmount <= 0) {
+                // Financial form was skipped or fee_amount is 0 - use default from settings
+                $feeAmount = (float) $settings->default_fee_amount;
+            } else {
+                $feeAmount = (float) $requestFeeAmount;
+            }
+            
             $amountPaid = (float) $request->input('amount_paid', 0);
-            $student->balance = $feeAmount - $amountPaid;
+            
+            // Set financial year from settings if not provided
+            if (!$request->filled('financial_year')) {
+                $student->financial_year = $settings->financial_year;
+            } else {
+                $student->financial_year = $request->input('financial_year');
+            }
+            
+            // Save student first (without balance - will be set after fee term creation)
+            $student->fee_amount = $feeAmount;
             $student->save();
 
+            // CRITICAL: Create fee term FIRST for the current financial year
+            // This ensures we have a fee term before calculating balance
             $this->syncInitialFeeTerm($student, $request, $feeAmount, $amountPaid);
+            
+            // CRITICAL: Run comprehensive fee calculation and synchronization
+            // This ensures student balance matches current term's closing_balance
+            // This is the same logic that runs in studentProfile() to ensure consistency
+            // This will sync student.balance = currentTerm.closing_balance
+            $this->calculateAndSyncStudentFees($student);
 
             DB::commit();
+            
+            // CRITICAL: Force database connection to flush and ensure transaction is fully committed
+            // This ensures the new student data is immediately visible to other database connections/queries
+            // Use a buffered Laravel query instead of raw PDO exec to avoid unbuffered query errors
+            DB::select('SELECT 1');
+            
+            // Clear any query cache that might interfere
+            DB::flushQueryLog();
+            
+            // Refresh the student one final time to ensure balance and fee_amount are current
+            $student->refresh();
+            
+            // Final verification: Ensure balance matches current term's closing_balance
+            $currentTerm = $student->feeTerms()->where('status', 'current')->first();
+            if ($currentTerm) {
+                $expectedBalance = max($currentTerm->closing_balance, 0);
+                if (abs($student->balance - $expectedBalance) > 0.01) {
+                    $student->balance = $expectedBalance;
+                    $student->save();
+                    // Use buffered Laravel query instead of raw PDO exec
+                    DB::select('SELECT 1');
+                }
+            }
+            
+            // Verify the student is actually in the database with correct balance
+            // This ensures data is committed before redirect
+            $verifyStudent = Student::find($student->id);
+            if ($verifyStudent && $verifyStudent->balance > 0) {
+                // Data is confirmed - proceed with redirect
+            }
+            
             Toastr::success('Student added successfully!', 'Success');
-            return redirect()->back();
+            
+            // Redirect to student list page
+            return redirect()->route('student/list');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Student save failed: ' . $e->getMessage());
@@ -296,8 +708,53 @@ class StudentController extends Controller
         }
     }
 
+    /** bulk delete students */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'required|integer|exists:students,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $studentIds = $request->student_ids;
+            $students = Student::whereIn('id', $studentIds)->get();
+            $deletedCount = 0;
+
+            foreach ($students as $student) {
+                // Delete image file if exists
+                if (!empty($student->image)) {
+                    $avatarFileName = basename($student->image);
+                    $avatarPath = storage_path('app/public/student-photos/' . $avatarFileName);
+                    if (file_exists($avatarPath) && is_file($avatarPath)) {
+                        unlink($avatarPath);
+                    }
+                }
+                $student->delete();
+                $deletedCount++;
+            }
+
+            DB::commit();
+            Toastr::success("Successfully deleted {$deletedCount} student(s)", 'Success');
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} student(s)",
+                'deleted_count' => $deletedCount
+            ]);
+        } catch(\Exception $e) {
+            DB::rollback();
+            \Log::error('Bulk delete students failed: ' . $e->getMessage());
+            Toastr::error('Failed to delete students', 'Error');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete students'
+            ], 500);
+        }
+    }
+
     /** student profile page */
-    public function studentProfile($id)
+    public function studentProfile(Request $request, $id)
     {
         if (!is_numeric($id) || $id <= 0) {
             abort(404, 'Student not found');
@@ -307,6 +764,15 @@ class StudentController extends Controller
             $query->orderByDesc('created_at');
         }])->findOrFail($id);
 
+        // Get class teacher for the student's class
+        $classTeacher = null;
+        if ($studentProfile->class) {
+            $classe = \App\Models\Classe::where('class_name', $studentProfile->class)->first();
+            if ($classe) {
+                $classTeacher = \App\Models\Teacher::where('class_teacher_id', $classe->id)->first();
+            }
+        }
+
         $payments = FeesInformation::with('term')
             ->where('student_id', $id)
             ->orderByDesc('paid_date')
@@ -315,10 +781,189 @@ class StudentController extends Controller
 
         $feeTerms = $studentProfile->feeTerms;
         $currentTerm = $feeTerms->firstWhere('status', 'current') ?? $feeTerms->first();
+        
+        // Auto-sync with financial settings - always get settings first
+        $schoolSettings = SchoolSettings::getSettings();
+        $yearChanged = false;
+        
+        if ($currentTerm) {
+            $needsUpdate = false;
+            
+            // Check if there's a previous term with outstanding balance that should be carried forward
+            $previousTermWithBalance = null;
+            if ($currentTerm) {
+                $previousTermWithBalance = $feeTerms->first(function ($term) use ($currentTerm, $schoolSettings) {
+                    return $term->id !== $currentTerm->id 
+                        && $term->academic_year != $schoolSettings->financial_year
+                        && $term->closing_balance != 0;
+                });
+            }
+            
+            // Auto-update academic year if it doesn't match
+            if ($currentTerm->academic_year != $schoolSettings->financial_year) {
+                // If year changed, we need to close the old term and create a new one
+                $oldClosingBalance = $currentTerm->closing_balance;
+                
+                // Close the old term
+                if ($currentTerm->closing_balance > 0) {
+                    $currentTerm->status = 'carried';
+                } elseif ($currentTerm->closing_balance < 0) {
+                    $currentTerm->status = 'credit';
+                } else {
+                    $currentTerm->status = 'closed';
+                }
+                $currentTerm->save();
+                
+                // Create a new term for the new year with the old balance as opening
+                $newTerm = $studentProfile->feeTerms()->create([
+                    'term_name' => 'Term 1 (' . $schoolSettings->financial_year . ')',
+                    'academic_year' => $schoolSettings->financial_year,
+                    'fee_amount' => $schoolSettings->default_fee_amount,
+                    'amount_paid' => 0, // Reset for new year
+                    'opening_balance' => $oldClosingBalance, // Carry forward from previous year
+                    'closing_balance' => $oldClosingBalance + $schoolSettings->default_fee_amount, // opening + new fee
+                    'status' => 'current',
+                ]);
+                
+                // Update current term reference
+                $currentTerm = $newTerm;
+                $needsUpdate = true;
+                $yearChanged = true;
+                
+                // Reload fee terms to include the new term
+                $feeTerms = $studentProfile->feeTerms()->orderByDesc('created_at')->get();
+                
+                // Recalculate previous term with balance after reload
+                $previousTermWithBalance = $feeTerms->first(function ($term) use ($currentTerm, $schoolSettings) {
+                    return $term->id !== $currentTerm->id 
+                        && $term->academic_year != $schoolSettings->financial_year
+                        && $term->closing_balance != 0;
+                });
+            }
+            
+            // Check if current term has wrong data (year matches but has old payment data)
+            // This happens if term was manually updated to 2026 but still has 2025's amount_paid
+            if (!$yearChanged 
+                && $currentTerm
+                && $currentTerm->academic_year == $schoolSettings->financial_year 
+                && $previousTermWithBalance 
+                && $currentTerm->opening_balance == 0 
+                && $currentTerm->amount_paid > 0) {
+                // This term has wrong data - it should have the previous term's balance as opening
+                $oldClosingBalance = $previousTermWithBalance->closing_balance;
+                
+                // Close the incorrectly configured term
+                $currentTerm->status = 'carried';
+                $currentTerm->save();
+                
+                // Create a new term with correct data
+                $newTerm = $studentProfile->feeTerms()->create([
+                    'term_name' => 'Term 1 (' . $schoolSettings->financial_year . ')',
+                    'academic_year' => $schoolSettings->financial_year,
+                    'fee_amount' => $schoolSettings->default_fee_amount,
+                    'amount_paid' => 0, // Reset for new year
+                    'opening_balance' => $oldClosingBalance, // Carry forward from previous year
+                    'closing_balance' => $oldClosingBalance + $schoolSettings->default_fee_amount, // opening + new fee
+                    'status' => 'current',
+                ]);
+                
+                // Update current term reference
+                $currentTerm = $newTerm;
+                $needsUpdate = true;
+                $yearChanged = true;
+                
+                // Reload fee terms to include the new term
+                $feeTerms = $studentProfile->feeTerms()->orderByDesc('created_at')->get();
+            }
+            
+            // Auto-update fee amount if it doesn't match (with small tolerance for floating point)
+            // Only update if year didn't change (since we already set it above)
+            if (!$yearChanged && abs($currentTerm->fee_amount - $schoolSettings->default_fee_amount) > 0.01) {
+                // Recalculate closing balance: opening + new_fee - amount_paid
+                $newClosingBalance = $currentTerm->opening_balance + $schoolSettings->default_fee_amount - $currentTerm->amount_paid;
+                
+                $currentTerm->fee_amount = $schoolSettings->default_fee_amount;
+                $currentTerm->closing_balance = $newClosingBalance;
+                
+                // Update status based on new closing balance
+                if ($newClosingBalance > 0) {
+                    $currentTerm->status = 'current';
+                } elseif ($newClosingBalance < 0) {
+                    $currentTerm->status = 'credit';
+                } else {
+                    $currentTerm->status = 'closed';
+                }
+                
+                $needsUpdate = true;
+            }
+            
+            // Save updates if any were made (only if year didn't change, since new term is already saved)
+            if ($needsUpdate && !$yearChanged) {
+                $currentTerm->save();
+                $currentTerm->refresh();
+            }
+            
+            // Update student's balance and financial_year
+            if ($needsUpdate) {
+                // Refresh current term to get latest data
+                if ($yearChanged) {
+                    $currentTerm->refresh();
+                }
+                
+                $studentProfile->balance = max($currentTerm->closing_balance, 0);
+                $studentProfile->fee_amount = $currentTerm->fee_amount;
+                $studentProfile->financial_year = $currentTerm->academic_year;
+                $studentProfile->save();
+            }
+        }
+        
+        // Refresh current term one more time to ensure we have latest data
+        if ($currentTerm) {
+            $currentTerm->refresh();
+        } else {
+            // If no current term exists, create one automatically
+            $previousTerm = $feeTerms->first();
+            $previousClosingBalance = $previousTerm ? $previousTerm->closing_balance : 0;
+            
+            // Close previous term if it exists
+            if ($previousTerm && $previousTerm->status == 'current') {
+                if ($previousTerm->closing_balance > 0) {
+                    $previousTerm->status = 'carried';
+                } elseif ($previousTerm->closing_balance < 0) {
+                    $previousTerm->status = 'credit';
+                } else {
+                    $previousTerm->status = 'closed';
+                }
+                $previousTerm->save();
+            }
+            
+            // Create a new current term
+            $currentTerm = $studentProfile->feeTerms()->create([
+                'term_name' => 'Term 1 (' . $schoolSettings->financial_year . ')',
+                'academic_year' => $schoolSettings->financial_year,
+                'fee_amount' => $schoolSettings->default_fee_amount,
+                'amount_paid' => 0,
+                'opening_balance' => $previousClosingBalance,
+                'closing_balance' => $previousClosingBalance + $schoolSettings->default_fee_amount,
+                'status' => 'current',
+            ]);
+            
+            // Update student record
+            $studentProfile->balance = max($currentTerm->closing_balance, 0);
+            $studentProfile->fee_amount = $currentTerm->fee_amount;
+            $studentProfile->financial_year = $currentTerm->academic_year;
+            $studentProfile->save();
+            
+            // Reload fee terms
+            $feeTerms = $studentProfile->feeTerms()->orderByDesc('created_at')->get();
+        }
+        
         $previousTerm = $feeTerms->first(function ($term) use ($currentTerm) {
             return $currentTerm && $term->id !== $currentTerm->id;
         });
 
+        // Use the current term's closing balance directly from database
+        // This ensures we get the actual value, not a cached or incorrect one
         $currentClosing = $currentTerm ? $currentTerm->closing_balance : ($studentProfile->balance ?? 0);
         $currentOpening = $currentTerm ? $currentTerm->opening_balance : 0;
 
@@ -336,6 +981,75 @@ class StudentController extends Controller
         $amountPaid = $currentTerm->amount_paid ?? 0;
         $balance = $financialSummary['outstanding_balance'];
 
+        // Get exam results for this student with exam details
+        $allExamResults = ExamResult::with(['exam' => function($query) {
+                $query->with('class');
+            }])
+            ->where('student_id', $id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->filter(function($result) {
+                return $result->exam !== null; // Only include results with valid exams
+            });
+
+        // Get all available terms and exam types for filter dropdowns
+        $availableTerms = $allExamResults->map(function($result) {
+                return $result->exam ? $result->exam->term : null;
+            })
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $availableExamTypes = $allExamResults->map(function($result) {
+                return $result->exam ? $result->exam->exam_type : null;
+            })
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        // Get filter parameters from request
+        $selectedTerm = $request->input('term');
+        $selectedExamType = $request->input('exam_type');
+
+        // Filter results based on selected term and exam type
+        $filteredResults = $allExamResults;
+        if ($selectedTerm) {
+            $filteredResults = $filteredResults->filter(function($result) use ($selectedTerm) {
+                return $result->exam && $result->exam->term == $selectedTerm;
+            });
+        }
+        if ($selectedExamType) {
+            $filteredResults = $filteredResults->filter(function($result) use ($selectedExamType) {
+                return $result->exam && $result->exam->exam_type == $selectedExamType;
+            });
+        }
+
+        // If no filters are selected and there are results, show the first available (most recent)
+        if (!$selectedTerm && !$selectedExamType && $allExamResults->isNotEmpty()) {
+            $firstResult = $allExamResults->first();
+            if ($firstResult && $firstResult->exam) {
+                $selectedTerm = $firstResult->exam->term;
+                $selectedExamType = $firstResult->exam->exam_type;
+                $filteredResults = $allExamResults->filter(function($result) use ($selectedTerm, $selectedExamType) {
+                    return $result->exam 
+                        && $result->exam->term == $selectedTerm 
+                        && $result->exam->exam_type == $selectedExamType;
+                });
+            }
+        }
+
+        // Group filtered results by exam_type, term, and class name (for consistency, though we'll only show one group)
+        $examResults = $filteredResults->groupBy(function($result) {
+                $exam = $result->exam;
+                if ($exam) {
+                    $className = $exam->class ? $exam->class->class_name : 'Unknown';
+                    return $exam->exam_type . '_' . $exam->term . '_' . $className;
+                }
+                return 'other';
+            });
+
         return view('student.student-profile', compact(
             'studentProfile',
             'feePerTerm',
@@ -344,7 +1058,14 @@ class StudentController extends Controller
             'feeTerms',
             'currentTerm',
             'financialSummary',
-            'payments'
+            'schoolSettings',
+            'payments',
+            'classTeacher',
+            'examResults',
+            'availableTerms',
+            'availableExamTypes',
+            'selectedTerm',
+            'selectedExamType'
         ));
     }
 
@@ -488,30 +1209,106 @@ class StudentController extends Controller
         return redirect()->back();
     }
 
+    /**
+     * Create initial fee term for a new student
+     * This creates the fee term but does NOT sync student balance (that's done by calculateAndSyncStudentFees)
+     * 
+     * @param Student $student
+     * @param Request $request
+     * @param float $feeAmount
+     * @param float $amountPaid
+     * @return void
+     */
     protected function syncInitialFeeTerm(Student $student, Request $request, float $feeAmount, float $amountPaid): void
     {
-        if ($feeAmount == 0 && $amountPaid == 0) {
+        // Get financial year from request or use default from settings
+        $settings = SchoolSettings::getSettings();
+        $financialYear = $request->input('financial_year') ?? $student->financial_year ?? $settings->financial_year;
+        
+        // Check if a term already exists for this student and financial year (prevent duplicates)
+        $existingTerm = $student->feeTerms()
+            ->where('academic_year', $financialYear)
+            ->first();
+        
+        if ($existingTerm) {
+            // Term already exists - update it instead of creating duplicate
+            $openingBalance = $existingTerm->opening_balance;
+            $closingBalance = $openingBalance + $feeAmount - $amountPaid;
+            $status = $closingBalance > 0 ? 'current' : ($closingBalance < 0 ? 'credit' : 'closed');
+            
+            $existingTerm->fee_amount = $feeAmount;
+            $existingTerm->amount_paid = $amountPaid;
+            $existingTerm->closing_balance = $closingBalance;
+            $existingTerm->status = $status;
+            $existingTerm->save();
+            $existingTerm->refresh();
             return;
         }
+        
+        // CRITICAL: Always create a fee term with the provided fee amount
+        // If feeAmount is still 0 at this point (shouldn't happen due to studentSave() logic),
+        // we still create a term but with closed status. However, this should be rare since
+        // studentSave() ensures default_fee_amount is used when financial form is skipped.
+        if ($feeAmount <= 0 && $amountPaid == 0) {
+            // Double-check: if default_fee_amount exists in settings, use it
+            // This is a final safety net in case the logic above didn't catch it
+            if ($settings->default_fee_amount > 0) {
+                $feeAmount = (float) $settings->default_fee_amount;
+                // Continue to create term with default fee amount (don't return)
+            } else {
+                // Only create closed term if default_fee_amount is also 0
+                $student->feeTerms()->create([
+                    'term_name' => $request->filled('term_name')
+                        ? $request->term_name
+                        : $this->generateTermName($student, $financialYear),
+                    'academic_year' => $financialYear,
+                    'fee_amount' => 0,
+                    'amount_paid' => 0,
+                    'opening_balance' => 0,
+                    'closing_balance' => 0,
+                    'status' => 'closed',
+                ]);
+                return;
+            }
+        }
 
-        $closingBalance = $feeAmount - $amountPaid;
+        // For new students, opening_balance is always 0
+        $openingBalance = 0;
+        // Calculate closing balance using the standard formula: opening_balance + fee_amount - amount_paid
+        $closingBalance = $openingBalance + $feeAmount - $amountPaid;
 
+        // Status should be 'current' if there's any outstanding balance
         $status = $closingBalance > 0 ? 'current' : ($closingBalance < 0 ? 'credit' : 'closed');
 
-        $student->feeTerms()->create([
+        $term = $student->feeTerms()->create([
             'term_name' => $request->filled('term_name')
                 ? $request->term_name
-                : $this->generateTermName($student, $request->input('financial_year')),
-            'academic_year' => $request->input('financial_year'),
+                : $this->generateTermName($student, $financialYear),
+            'academic_year' => $financialYear,
             'fee_amount' => $feeAmount,
             'amount_paid' => $amountPaid,
-            'opening_balance' => 0,
+            'opening_balance' => $openingBalance,
             'closing_balance' => $closingBalance,
             'status' => $status,
         ]);
 
-        $student->balance = max($closingBalance, 0);
-        $student->save();
+        // Force save to ensure the term is persisted immediately
+        // This is important for the dashboard query to pick it up right away
+        $term->save();
+        
+        // Refresh the term to ensure it's properly loaded from database
+        // This ensures we have the latest data including the auto-generated ID
+        $term->refresh();
+        
+        // Double-check the values are correct after refresh
+        if ($term->status !== $status || abs($term->closing_balance - $closingBalance) > 0.01) {
+            $term->status = $status;
+            $term->closing_balance = $closingBalance;
+            $term->save();
+            $term->refresh();
+        }
+        
+        // Note: Student balance sync is handled by calculateAndSyncStudentFees() to ensure consistency
     }
 
     protected function generateTermName(Student $student, ?string $academicYear = null): string
@@ -520,5 +1317,161 @@ class StudentController extends Controller
         $year = $academicYear ?: now()->format('Y');
 
         return "Term {$count} ({$year})";
+    }
+
+    /**
+     * Calculate and synchronize student fees with current term
+     * This method ensures student.balance = currentTerm.closing_balance
+     * This is the core fee calculation logic that was previously only in studentProfile()
+     * 
+     * @param Student $student
+     * @return void
+     */
+    protected function calculateAndSyncStudentFees(Student $student): void
+    {
+        // Reload student with fee terms to ensure we have latest data
+        $student->refresh();
+        $student->load('feeTerms');
+        
+        $feeTerms = $student->feeTerms;
+        $schoolSettings = SchoolSettings::getSettings();
+        
+        // Find current term - prioritize status='current', then latest term
+        $currentTerm = $feeTerms->firstWhere('status', 'current') ?? $feeTerms->sortByDesc('created_at')->first();
+        
+        // If no current term exists OR current term is for wrong academic year, create/update one
+        if (!$currentTerm || ($currentTerm->academic_year != $schoolSettings->financial_year)) {
+            // Close existing current term if it exists and is for wrong year
+            if ($currentTerm && $currentTerm->academic_year != $schoolSettings->financial_year) {
+                if ($currentTerm->closing_balance > 0) {
+                    $currentTerm->status = 'carried';
+                } elseif ($currentTerm->closing_balance < 0) {
+                    $currentTerm->status = 'credit';
+                } else {
+                    $currentTerm->status = 'closed';
+                }
+                $currentTerm->save();
+            }
+            
+            // Check if there's already a term for the current financial year (prevent duplicates)
+            $existingTermForYear = $student->feeTerms()
+                ->where('academic_year', $schoolSettings->financial_year)
+                ->first();
+            
+            if ($existingTermForYear) {
+                // Use existing term but ensure it's marked as current
+                $currentTerm = $existingTermForYear;
+                if ($currentTerm->status != 'current') {
+                    $currentTerm->status = 'current';
+                    $currentTerm->save();
+                }
+            } else {
+                // Get previous term's closing balance for carry forward
+                $previousTerm = $feeTerms->where('id', '!=', $currentTerm?->id)
+                    ->sortByDesc('created_at')
+                    ->first();
+                $previousClosingBalance = $previousTerm ? $previousTerm->closing_balance : 0;
+                
+                // Create a new current term for the current financial year
+                $currentTerm = $student->feeTerms()->create([
+                    'term_name' => 'Term 1 (' . $schoolSettings->financial_year . ')',
+                    'academic_year' => $schoolSettings->financial_year,
+                    'fee_amount' => $schoolSettings->default_fee_amount,
+                    'amount_paid' => 0,
+                    'opening_balance' => $previousClosingBalance,
+                    'closing_balance' => $previousClosingBalance + $schoolSettings->default_fee_amount,
+                    'status' => 'current',
+                ]);
+            }
+        }
+        
+        // Ensure current term is refreshed to get latest data
+        $currentTerm->refresh();
+        
+        // CRITICAL: Sync student balance with current term's closing_balance
+        // This is the key calculation that ensures dashboard queries work correctly
+        $expectedBalance = max($currentTerm->closing_balance, 0);
+        
+        // Update student record to match current term
+        $student->balance = $expectedBalance;
+        $student->fee_amount = $currentTerm->fee_amount;
+        $student->financial_year = $currentTerm->academic_year;
+        $student->save();
+        
+        // Force refresh to ensure all relationships are updated
+        $student->refresh();
+    }
+
+    /**
+     * Update term's academic year to match current financial year setting
+     */
+    public function updateTermYear(Student $student, StudentFeeTerm $term)
+    {
+        abort_if($term->student_id !== $student->id, 404);
+
+        DB::beginTransaction();
+        try {
+            $settings = SchoolSettings::getSettings();
+            
+            $term->academic_year = $settings->financial_year;
+            $term->save();
+
+            // Also update student's financial_year to match
+            $student->financial_year = $settings->financial_year;
+            $student->save();
+
+            DB::commit();
+            Toastr::success('Academic year updated successfully to ' . $settings->financial_year . '.', 'Success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update term year: ' . $e->getMessage());
+            Toastr::error('Failed to update academic year.', 'Error');
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * Update term's fee amount to match current default fee setting
+     */
+    public function updateTermFee(Student $student, StudentFeeTerm $term)
+    {
+        abort_if($term->student_id !== $student->id, 404);
+
+        DB::beginTransaction();
+        try {
+            $settings = SchoolSettings::getSettings();
+            
+            // Recalculate closing balance: opening + new_fee - amount_paid
+            $newClosingBalance = $term->opening_balance + $settings->default_fee_amount - $term->amount_paid;
+            
+            $term->fee_amount = $settings->default_fee_amount;
+            $term->closing_balance = $newClosingBalance;
+            
+            // Update status based on new closing balance
+            if ($newClosingBalance > 0) {
+                $term->status = 'current';
+            } elseif ($newClosingBalance < 0) {
+                $term->status = 'credit';
+            } else {
+                $term->status = 'closed';
+            }
+            
+            $term->save();
+
+            // Update student's balance and fee_amount
+            $student->balance = max($newClosingBalance, 0);
+            $student->fee_amount = $settings->default_fee_amount;
+            $student->save();
+
+            DB::commit();
+            Toastr::success('Fee amount updated successfully to Ksh' . number_format($settings->default_fee_amount, 2) . '. Balance recalculated.', 'Success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update term fee: ' . $e->getMessage());
+            Toastr::error('Failed to update fee amount.', 'Error');
+        }
+
+        return redirect()->back();
     }
 }

@@ -221,7 +221,7 @@
                                 <li>
                                     <div class="report-btn">
                                         <a href="#" class="btn">
-                                            <img src="assets/img/icons/invoices-icon5.png" alt="" class="me-2">
+                                            <img src="{{ URL::to('assets/img/icons/invoices-icon5.png') }}" alt="" class="me-2">
                                             Generate report
                                         </a>
                                     </div>
@@ -238,7 +238,7 @@
                         <div class="row align-items-center">
                             <div class="col-lg-12 col-md-12">
                                 <div class="invoices-settings-btn invoices-settings-btn-one">
-                                    <a href="invoices-settings.html" class="invoices-settings-icon">
+                                    <a href="{{ route('invoice/settings/page') }}" class="invoices-settings-icon">
                                         <i class="feather feather-settings"></i>
                                     </a>
                                     <a href="{{ route('invoice/add/page') }}" class="btn">
@@ -263,10 +263,10 @@
                                         <i class="fas fa-ellipsis-v"></i>
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-end">
-                                        <a class="dropdown-item" href="edit-invoice.html">
+                                        <a class="dropdown-item" href="{{ route('invoice/edit/page', $value->invoice_id) }}">
                                             <i class="far fa-edit me-2"></i>Edit
                                         </a>
-                                        <a class="dropdown-item" href="{{ url('invoice/view/'.$value->invoice_id) }}">
+                                        <a class="dropdown-item" href="{{ route('invoice/view/page', $value->invoice_id) }}">
                                             <i class="far fa-eye me-2"></i>View Detail
                                         </a>
                                         <a class="dropdown-item" href="javascript:void(0);">
@@ -277,20 +277,20 @@
                             </div>
                             <div class="card-middle">
                                 <h2 class="card-middle-avatar">
-                                    <a href="profile.html">
+                                    <span>
                                         <img class="avatar avatar-sm me-2 avatar-img rounded-circle" src="{{ URL::to('/images/photo_defaults.jpg') }}" alt="User Image"> {{ $value->customer_name }}
-                                    </a>
+                                    </span>
                                 </h2>
                             </div>
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col">
                                         <span><i class="far fa-money-bill-alt"></i> Amount</span>
-                                        <h6 class="mb-0">${{ $value->total_amount }}</h6>
+                                        <h6 class="mb-0">Ksh {{ number_format($value->total_amount, 2) }}</h6>
                                     </div>
                                     <div class="col-auto">
                                         <span><i class="far fa-calendar-alt"></i> Due Date</span>
-                                        <h6 class="mb-0">{{ \Carbon\Carbon::parse($value->due_date)->format('d M Y') }}</h6>
+                                        <h6 class="mb-0">{{ $value->due_date ? \Carbon\Carbon::parse($value->due_date)->format('d M Y') : 'N/A' }}</h6>
                                     </div>
                                 </div>
                             </div>

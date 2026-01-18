@@ -10,7 +10,7 @@
                     <div class="col-sm-6">
                         <h3 class="page-title">Invoice settings</h3>
                         <ul class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a>
+                            <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a>
                             </li>
                             <li class="breadcrumb-item active">Tax Settings</li>
                         </ul>
@@ -23,8 +23,8 @@
                     <div class="widget settings-menu">
                         <ul>
                             <li class="nav-item">
-                                <a href="{{ route('setting/page') }}" class="nav-link">
-                                    <i class="fe fe-git-commit"></i> <span>General Settings</span>
+                                <a href="{{ route('invoice/settings/page') }}" class="nav-link">
+                                    <i class="fe fe-git-commit"></i> <span>Invoice Settings</span>
                                 </a>
                             </li>
                             <li class="nav-item">

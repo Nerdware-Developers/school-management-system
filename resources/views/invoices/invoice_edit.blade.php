@@ -37,17 +37,22 @@
                                     <div class="row">
                                         <div class="col-xl-4 col-md-6 col-sm-12 col-12">
                                             <div class="form-group">
-                                                <label>Customer Name</label>
-                                                <select class="select select2s-hidden-accessible @error('full_name') is-invalid @enderror" style="width: 100%;" tabindex="-1" aria-hidden="true" id="customer_name" name="customer_name">
-                                                    <option>{{ $invoiceView->customer_name }}</option>
-                                                    @foreach($users as $key => $names)
-                                                        <option value="{{ $names->name }}"data-teacher_id={{ $names->user_id }} {{ old('full_name') == $names->name ? "selected" :""}}>{{ $names->name }}</option>
-                                                    @endforeach
-                                                </select>
+                                                <label>Customer Name <span class="text-danger">*</span></label>
+                                                <input class="form-control @error('customer_name') is-invalid @enderror" type="text" id="customer_name" name="customer_name" placeholder="Enter Customer Name" value="{{ old('customer_name', $invoiceView->customer_name) }}" required>
+                                                @error('customer_name')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                @enderror
                                             </div>
                                             <div class="form-group">
-                                                <label>Po Number</label>
-                                                <input class="form-control" type="text" id="po_number" name="po_number" value="{{ $invoiceView->po_number }}">
+                                                <label>Po Number <span class="text-danger">*</span></label>
+                                                <input class="form-control @error('po_number') is-invalid @enderror" type="text" id="po_number" name="po_number" placeholder="Enter Reference Number" value="{{ old('po_number', $invoiceView->po_number) }}" required>
+                                                @error('po_number')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                @enderror
                                             </div>
                                         </div>
                                         
@@ -281,16 +286,16 @@
                                             <div class="invoice-total-box">
                                                 <div class="invoice-total-inner">
                                                     <input type="hidden" name="taxable_amount" id="taxable_amount" value="{{ $invoiceView->taxable_amount }}">
-                                                    <p>Taxable Amount <span id="">${{ $invoiceView->taxable_amount }}</span></p>
+                                                    <p>Taxable Amount <span id="">Ksh {{ number_format($invoiceView->taxable_amount, 2) }}</span></p>
                                                     <p>Round Off
                                                         @if(!empty($invoiceView->round_off))
                                                             <input type="checkbox" name="round_off" id="status_1" class="check" checked value="{{ $invoiceView->round_off }}">
                                                             <label for="status_1" class="checktoggle">checkbox</label>
-                                                            <span>${{ $invoiceView->round_off }}</span>
+                                                            <span>Ksh {{ number_format($invoiceView->round_off, 2) }}</span>
                                                         @else 
                                                         <input type="checkbox" name="round_off" id="status_1" class="check" value="54">
                                                         <label for="status_1" class="checktoggle">checkbox</label>
-                                                        <span>$54</span>
+                                                        <span>Ksh 54.00</span>
                                                         @endif
                                                     </p>
                                                     <div class="links-info-one">
@@ -302,7 +307,7 @@
                                                                 <a href="#" class="service-trash">
                                                                     <i class="fe fe-minus-circle me-1"></i>Service Charge
                                                                 </a> 
-                                                                <span>${{ $value->service_charge }}</span>
+                                                                <span>Ksh {{ number_format($value->service_charge, 2) }}</span>
                                                                 <input type="hidden" name="service_charge[]" value="{{ $value->service_charge }}">
                                                             </div>
                                                         @endforeach
@@ -330,7 +335,7 @@
                                                     @endif
                                                 </div>
                                                 <div class="invoice-total-footer">
-                                                    <h4>Total Amount <span id="total_amount">$<span class="total_amount" name="total_amount">{{ $invoiceView->total_amount }}</span></span></h4>
+                                                    <h4>Total Amount <span id="total_amount">Ksh <span class="total_amount" name="total_amount">{{ number_format($invoiceView->total_amount, 2) }}</span></span></h4>
                                                     <input type="hidden" name="total_amount" value="{{ $invoiceView->total_amount }}">
                                                 </div>
                                             </div>
@@ -390,7 +395,7 @@
                                     <div class="invoice-item invoice-item-bg">
                                         <div class="invoice-circle-img">
                                             <img src="{{ URL::to('assets/img/invoice-circle1.png') }}" alt="" class="invoice-circle1">
-                                            <img src="assets/img/invoice-circle2.png" alt=""class="invoice-circle2">
+                                            <img src="{{ URL::to('assets/img/invoice-circle2.png') }}" alt=""class="invoice-circle2">
                                         </div>
                                         <div class="row">
                                             <div class="col-lg-4 col-md-12">
@@ -421,7 +426,7 @@
                                                 <div class="invoice-info invoice-info-one border-0">
                                                     <p>Issue Date : 27 Jul 2022</p>
                                                     <p>Due Date : 27 Aug 2022</p>
-                                                    <p>Due Amount : $ 1,54,22 </p>
+                                                    <p>Due Amount : Ksh 154,220.00 </p>
                                                     <p>Recurring Invoice : 15 Months</p>
                                                     <p class="mb-0">PO Number : 54515454</p>
                                                 </div>
@@ -449,26 +454,26 @@
                                                             <tr>
                                                                 <td>Dell Laptop</td>
                                                                 <td>Laptop</td>
-                                                                <td>$1,110</td>
+                                                                <td>Ksh 1,110.00</td>
                                                                 <th>2</th>
                                                                 <th>2%</th>
-                                                                <td class="text-end">$400</td>
+                                                                <td class="text-end">Ksh 400.00</td>
                                                             </tr>
                                                             <tr>
                                                                 <td>HP Laptop</td>
                                                                 <td>Laptop</td>
-                                                                <td>$1,500</td>
+                                                                <td>Ksh 1,500.00</td>
                                                                 <th>3</th>
                                                                 <th>6%</th>
-                                                                <td class="text-end">$3,000</td>
+                                                                <td class="text-end">Ksh 3,000.00</td>
                                                             </tr>
                                                             <tr>
                                                                 <td>Apple Ipad</td>
                                                                 <td>Ipad</td>
-                                                                <td>$11,500</td>
+                                                                <td>Ksh 11,500.00</td>
                                                                 <th>1</th>
                                                                 <th>10%</th>
-                                                                <td class="text-end">$11,000</td>
+                                                                <td class="text-end">Ksh 11,000.00</td>
                                                             </tr>
                                                         </tbody>
                                                     </table>
@@ -490,13 +495,13 @@
                                             <div class="invoice-total-card">
                                                 <div class="invoice-total-box">
                                                     <div class="invoice-total-inner">
-                                                        <p>Taxable <span>$6,660.00</span></p>
-                                                        <p>Additional Charges <span>$6,660.00</span></p>
-                                                        <p>Discount <span>$3,300.00</span></p>
-                                                        <p class="mb-0">Sub total <span>$3,300.00</span></p>
+                                                        <p>Taxable <span>Ksh 6,660.00</span></p>
+                                                        <p>Additional Charges <span>Ksh 6,660.00</span></p>
+                                                        <p>Discount <span>Ksh 3,300.00</span></p>
+                                                        <p class="mb-0">Sub total <span>Ksh 3,300.00</span></p>
                                                     </div>
                                                     <div class="invoice-total-footer">
-                                                        <h4>Total Amount <span>$143,300.00</span></h4>
+                                                        <h4>Total Amount <span>Ksh 143,300.00</span></h4>
                                                     </div>
                                                 </div>
                                             </div>

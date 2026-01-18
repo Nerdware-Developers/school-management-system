@@ -75,19 +75,26 @@ class DepartmentController extends Controller
         foreach ($records as $key => $record) {
 
             $modify = '
-                <td class="text-end"> 
+                <td class="text-end">
                     <div class="actions">
                         <a href="'.url('department/edit/'.$record->department_id).'" class="btn btn-sm bg-danger-light">
                             <i class="far fa-edit me-2"></i>
                         </a>
-                        <a class="btn btn-sm bg-danger-light delete department_id" data-bs-toggle="modal" data-department_id="'.$record->id.'" data-bs-target="#delete">
+                        <a class="btn btn-sm bg-danger-light delete department_id" data-bs-toggle="modal" data-department_id="'.$record->department_id.'" data-bs-target="#delete">
                         <i class="fe fe-trash-2"></i>
                         </a>
                     </div>
                 </td>
             ';
 
+            $checkbox = '
+                <div class="form-check check-tables">
+                    <input class="form-check-input department-checkbox" type="checkbox" value="'.$record->department_id.'" data-department-id="'.$record->department_id.'">
+                </div>
+            ';
+
             $data_arr [] = [
+                "checkbox"              => $checkbox,
                 "department_id"         => $record->department_id,
                 "department_name"       => $record->department_name,
                 "head_of_department"    => $record->head_of_department,
@@ -177,6 +184,37 @@ class DepartmentController extends Controller
             DB::rollback();
             Toastr::error('Department deleted fail :)','Error');
             return redirect()->back();
+        }
+    }
+
+    /** bulk delete departments */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'department_ids' => 'required|array',
+            'department_ids.*' => 'required|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $departmentIds = $request->department_ids;
+            $deletedCount = Department::whereIn('department_id', $departmentIds)->delete();
+            
+            DB::commit();
+            Toastr::success("Successfully deleted {$deletedCount} department(s)", 'Success');
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} department(s)",
+                'deleted_count' => $deletedCount
+            ]);
+        } catch(\Exception $e) {
+            DB::rollback();
+            \Log::error('Bulk delete departments failed: ' . $e->getMessage());
+            Toastr::error('Failed to delete departments', 'Error');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete departments'
+            ], 500);
         }
     }
 }

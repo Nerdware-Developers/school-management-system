@@ -9,6 +9,9 @@
                 <h6>View and manage school events</h6>
             </div>
             <div class="page-btn">
+                <button type="button" id="bulkDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+                    <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                </button>
                 <a href="{{ route('events.create') }}" class="btn btn-primary">Add Event</a>
                 <button type="button" class="btn btn-secondary" onclick="toggleView()" id="toggleViewBtn">View List</button>
             </div>
@@ -28,6 +31,11 @@
                     <table class="table">
                         <thead>
                             <tr>
+                                <th>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll" value="">
+                                    </div>
+                                </th>
                                 <th>Title</th>
                                 <th>Type</th>
                                 <th>Start Date</th>
@@ -39,6 +47,12 @@
                         <tbody>
                             @forelse($eventsList as $event)
                                 <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input event-checkbox" type="checkbox" 
+                                                value="{{ $event['id'] }}" data-event-id="{{ $event['id'] }}">
+                                        </div>
+                                    </td>
                                     <td>
                                         <strong>{{ $event['title'] }}</strong>
                                         @if($event['description'])
@@ -59,7 +73,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center">No events found. <a href="{{ route('events.create') }}">Create one now</a></td>
+                                    <td colspan="7" class="text-center">No events found. <a href="{{ route('events.create') }}">Create one now</a></td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -116,6 +130,88 @@
             btn.textContent = 'View Calendar';
         }
     }
+
+    // Bulk delete functionality
+    $(document).ready(function() {
+        $('#selectAll').on('change', function() {
+            $('.event-checkbox').prop('checked', $(this).prop('checked'));
+            updateDeleteButton();
+        });
+
+        $(document).on('change', '.event-checkbox', function() {
+            var totalCheckboxes = $('.event-checkbox').length;
+            var checkedCheckboxes = $('.event-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+            updateDeleteButton();
+        });
+
+        function updateDeleteButton() {
+            var selectedCount = $('.event-checkbox:checked').length;
+            if (selectedCount > 0) {
+                $('#bulkDeleteBtn').show();
+                $('#selectedCount').text(selectedCount);
+            } else {
+                $('#bulkDeleteBtn').hide();
+            }
+        }
+
+        $('#bulkDeleteBtn').on('click', function() {
+            var selectedIds = [];
+            $('.event-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+
+            if (selectedIds.length === 0) {
+                toastr.warning('Please select at least one event to delete');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete ' + selectedIds.length + ' event(s)? This action cannot be undone.')) {
+                return;
+            }
+
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
+
+            $.ajax({
+                url: '{{ route("events.bulk-delete") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    event_ids: selectedIds
+                },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        $('.event-checkbox:checked').each(function() {
+                            $(this).closest('tr').fadeOut(300, function() {
+                                $(this).remove();
+                                updateDeleteButton();
+                                if ($('.event-checkbox').length === 0) {
+                                    location.reload();
+                                }
+                            });
+                        });
+                        $('#selectAll').prop('checked', false);
+                        // Refresh calendar
+                        $('#calendar').fullCalendar('refetchEvents');
+                    } else {
+                        toastr.error(response.message || 'Failed to delete events');
+                    }
+                },
+                error: function(xhr) {
+                    var message = 'Failed to delete events';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    toastr.error(message);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">' + $('.event-checkbox:checked').length + '</span>)');
+                }
+            });
+        });
+    });
 </script>
 @endsection
 

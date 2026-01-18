@@ -21,17 +21,17 @@
                     <div class="row align-items-center">
                         <div class="col-auto profile-image">
                             <a href="#">
-                                <img class="rounded-circle" alt="{{ Session::get('name') }}" src="/images/{{ Session::get('avatar') }}">
+                                <img class="rounded-circle" alt="{{ $user->name }}" src="/images/{{ $user->avatar ?? 'photo_defaults.jpg' }}">
                             </a>
                         </div>
                         <div class="col ms-md-n2 profile-user-info">
-                            <h4 class="user-name mb-0">{{ Session::get('name') }}</h4>
-                            <h6 class="text-muted">{{ Session::get('position') }}</h6>
-                            <div class="user-Location"><i class="fas fa-map-marker-alt"></i> Combodai Phnom Penh</div>
-                            <div class="about-text">Khmer 009</div>
+                            <h4 class="user-name mb-0">{{ $user->name }}</h4>
+                            <h6 class="text-muted">{{ $user->position ?? 'N/A' }}</h6>
+                            <div class="user-Location"><i class="fas fa-map-marker-alt"></i> {{ $user->department ?? 'N/A' }}</div>
+                            <div class="about-text">{{ $user->role_name ?? 'N/A' }}</div>
                         </div>
                         <div class="col-auto profile-btn">
-                            <a href="" class="btn btn-primary">Edit</a>
+                            <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#edit_personal_details">Edit</a>
                         </div>
                     </div>
                 </div>
@@ -54,64 +54,43 @@
                                     <div class="card-body">
                                         <h5 class="card-title d-flex justify-content-between">
                                             <span>Personal Details</span>
-                                            <a class="edit-link" data-bs-toggle="modal"
-                                                href="#edit_personal_details"><i
+                                            <a class="edit-link" href="#" data-bs-toggle="modal" data-bs-target="#edit_personal_details"><i
                                                     class="far fa-edit me-1"></i>Edit</a>
                                         </h5>
                                         <div class="row">
                                             <p class="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">Name</p>
-                                            <p class="col-sm-9">{{ Session::get('name') }}</p>
+                                            <p class="col-sm-9">{{ $user->name }}</p>
                                         </div>
                                         <div class="row">
                                             <p class="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">Date of Birth</p>
-                                            <p class="col-sm-9">24 Jul 1983</p>
+                                            <p class="col-sm-9">{{ $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->format('d M Y') : 'N/A' }}</p>
                                         </div>
                                         <div class="row">
                                             <p class="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">Email</p>
-                                            <p class="col-sm-9"><a href="/cdn-cgi/l/email-protection"
-                                                    class="__cf_email__"
-                                                    data-cfemail="a1cbcec9cfc5cec4e1c4d9c0ccd1cdc48fc2cecc">{{ Session::get('email') }}</a>
-                                            </p>
+                                            <p class="col-sm-9"><a href="mailto:{{ $user->email }}">{{ $user->email }}</a></p>
                                         </div>
                                         <div class="row">
                                             <p class="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">Mobile</p>
-                                            <p class="col-sm-9">{{ Session::get('phone_number') }}</p>
+                                            <p class="col-sm-9">{{ $user->phone_number ?? 'N/A' }}</p>
                                         </div>
                                         <div class="row">
-                                            <p class="col-sm-3 text-muted text-sm-end mb-0">Address</p>
-                                            <p class="col-sm-9 mb-0">Phnome Phenh</p>
+                                            <p class="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">Position</p>
+                                            <p class="col-sm-9 mb-0">{{ $user->position ?? 'N/A' }}</p>
+                                        </div>
+                                        <div class="row">
+                                            <p class="col-sm-3 text-muted text-sm-end mb-0">Department</p>
+                                            <p class="col-sm-9 mb-0">{{ $user->department ?? 'N/A' }}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-lg-3">
-
                                 <div class="card">
                                     <div class="card-body">
-                                        <h5 class="card-title d-flex justify-content-between">
+                                        <h5 class="card-title">
                                             <span>Account Status</span>
-                                            <a class="edit-link" href="#"><i class="far fa-edit me-1"></i>Edit</a>
                                         </h5>
-                                        <button class="btn btn-success" type="button"><i class="fe fe-check-verified"></i> {{ Session::get('status') }}</button>
-                                    </div>
-                                </div>
-
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title d-flex justify-content-between">
-                                            <span>Skills </span>
-                                            <a class="edit-link" href="#"><i class="far fa-edit me-1"></i>Edit</a>
-                                        </h5>
-                                        <div class="skill-tags">
-                                            <span>Html5</span>
-                                            <span>CSS3</span>
-                                            <span>WordPress</span>
-                                            <span>Javascript</span>
-                                            <span>Android</span>
-                                            <span>iOS</span>
-                                            <span>Angular</span>
-                                            <span>PHP</span>
-                                        </div>
+                                        <button class="btn btn-success" type="button"><i class="fe fe-check-verified"></i> {{ $user->status ?? 'Active' }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -167,4 +146,85 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Personal Details Modal -->
+<div class="modal fade" id="edit_personal_details" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Personal Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('user/profile/update') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="row form-row">
+                        <div class="col-12 col-sm-12">
+                            <div class="form-group">
+                                <label>Profile Picture</label>
+                                <div class="mb-3 text-center">
+                                    <img id="avatar-preview" src="/images/{{ $user->avatar ?? 'photo_defaults.jpg' }}" alt="Profile" class="rounded-circle mb-2" style="width: 100px; height: 100px; object-fit: cover;">
+                                    <br>
+                                    <label for="avatar" class="btn btn-sm btn-primary">Upload New Picture</label>
+                                    <input type="file" id="avatar" name="avatar" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" value="{{ $user->name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" name="email" value="{{ $user->email }}" required>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Date of Birth</label>
+                                <input type="date" class="form-control" name="date_of_birth" value="{{ $user->date_of_birth }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Mobile</label>
+                                <input type="text" class="form-control" name="phone_number" value="{{ $user->phone_number }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Position</label>
+                                <input type="text" class="form-control" name="position" value="{{ $user->position }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <input type="text" class="form-control" name="department" value="{{ $user->department }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="submit-section">
+                        <button type="submit" class="btn btn-primary submit-btn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('avatar-preview').src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 @endsection

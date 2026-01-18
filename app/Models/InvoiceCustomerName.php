@@ -20,6 +20,7 @@ class InvoiceCustomerName extends Model
         'month',
         'invoice_from',
         'invoice_to',
+        'status',
     ];
 
     /** auto genarate id */

@@ -46,11 +46,59 @@ class EmployerController extends Controller
         return '+254' . preg_replace('/[^\d]/', '', $phone);
     }
 
-    /** List all employers */
+    /** List all employers (including teachers) */
     public function index()
     {
-        $employers = Employer::orderBy('full_name')->paginate(10);
-        return view('employers.index', compact('employers'));
+        // Get all employers
+        $employers = Employer::all();
+        
+        // Get all teachers and convert them to employer-like format
+        $teachers = \App\Models\Teacher::all()->map(function($teacher) {
+            return (object)[
+                'id' => $teacher->id,
+                'employee_id' => $teacher->user_id ?? 'T' . str_pad($teacher->id, 3, '0', STR_PAD_LEFT),
+                'full_name' => $teacher->full_name,
+                'gender' => $teacher->gender,
+                'date_of_birth' => $teacher->date_of_birth,
+                'position' => 'Teacher',
+                'department' => null,
+                'joining_date' => $teacher->joining_date ?? null,
+                'phone_number' => $teacher->phone_number,
+                'email' => null,
+                'address' => $teacher->address,
+                'city' => $teacher->city,
+                'state' => $teacher->state,
+                'zip_code' => $teacher->zip_code,
+                'country' => $teacher->country,
+                'monthly_salary' => $teacher->monthly_salary ?? null,
+                'notes' => null,
+                'type' => 'teacher',
+                'created_at' => $teacher->created_at,
+                'updated_at' => $teacher->updated_at,
+            ];
+        });
+        
+        // Combine and sort
+        $allEmployees = $employers->map(function($employer) {
+            $employer->type = 'employer';
+            return $employer;
+        })->concat($teachers)->sortBy('full_name');
+        
+        // Manual pagination
+        $currentPage = request()->get('page', 1);
+        $perPage = 10;
+        $items = $allEmployees->forPage($currentPage, $perPage);
+        $total = $allEmployees->count();
+        
+        $employees = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+        
+        return view('employers.index', compact('employees'));
     }
 
     /** Show add employer form */

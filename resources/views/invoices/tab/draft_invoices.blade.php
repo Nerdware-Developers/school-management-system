@@ -10,7 +10,7 @@
                         <h3 class="page-title">Invoices</h3>
                         <ul class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="invoices.html">Invoice</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('invoice/list/page') }}">Invoice</a></li>
                             <li class="breadcrumb-item active">Invoices Draft</li>
                         </ul>
                     </div>
@@ -213,7 +213,7 @@
                                 <li>
                                     <div class="report-btn">
                                         <a href="#" class="btn">
-                                            <img src="assets/img/icons/invoices-icon5.png" alt="" class="me-2">
+                                            <img src="{{ URL::to('assets/img/icons/invoices-icon5.png') }}" alt="" class="me-2">
                                             Generate report
                                         </a>
                                     </div>
@@ -242,7 +242,7 @@
                             </div>
                             <div class="col-lg-4 col-md-4">
                                 <div class="invoices-settings-btn">
-                                    <a href="invoices-settings.html" class="invoices-settings-icon">
+                                    <a href="{{ route('invoice/settings/page') }}" class="invoices-settings-icon">
                                         <i class="feather feather-settings"></i>
                                     </a>
                                     <a href="{{ route('invoice/add/page') }}" class="btn">
@@ -264,7 +264,7 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon1.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$8,78,797</div>
+                                    <div class="inovices-amount">Ksh 8,78,797</div>
                                 </div>
                             </div>
                             <p class="inovices-all">All Invoices <span>50</span></p>
@@ -279,7 +279,7 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon2.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$4,5884</div>
+                                    <div class="inovices-amount">Ksh 4,5884</div>
                                 </div>
                             </div>
                             <p class="inovices-all">Paid Invoices <span>60</span></p>
@@ -294,7 +294,7 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon3.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$2,05,545</div>
+                                    <div class="inovices-amount">Ksh 2,05,545</div>
                                 </div>
                             </div>
                             <p class="inovices-all">Unpaid Invoices <span>70</span></p>
@@ -309,7 +309,7 @@
                                     <img src="{{ URL::to('assets/img/icons/invoices-icon4.svg') }}" alt="">
                                 </span>
                                 <div class="inovices-dash-count">
-                                    <div class="inovices-amount">$8,8,797</div>
+                                    <div class="inovices-amount">Ksh 8,8,797</div>
                                 </div>
                             </div>
                             <p class="inovices-all">Cancelled Invoices <span>80</span></p>
@@ -340,15 +340,15 @@
                                                     <span class="checkmark"></span>
                                                 </label>
                                                 <h2 class="table-avatar">
-                                                    <a href="profile.html">
+                                                    <span>
                                                         <img class="avatar avatar-sm me-2 avatar-img rounded-circle" src="{{ URL::to('/images/photo_defaults.jpg') }}" alt="User Image"> StarCode Moore
-                                                    </a>
+                                                    </span>
                                                 </h2>
                                             </td>
-                                            <td class="text-primary">$1,54,220</td>
+                                            <td class="text-primary">Ksh 154,220.00</td>
                                             <td>16 Mar 2022</td>
                                             <td class="text-end">
-                                                <a href="edit-invoice.html"
+                                                <a href="#"
                                                     class="btn btn-sm btn-white text-success me-2">
                                                     <i class="far fa-edit me-1"></i> Edit</a>
                                                 <a class="btn btn-sm btn-white text-danger" href="#" data-bs-toggle="modal" data-bs-target="#delete_paid">
@@ -363,14 +363,14 @@
                                                     <span class="checkmark"></span>
                                                 </label>
                                                 <h2 class="table-avatar">
-                                                    <a href="profile.html">
+                                                    <span>
                                                         <img class="avatar avatar-sm me-2 avatar-img rounded-circle" src="{{ URL::to('/images/photo_defaults.jpg') }}" alt="User Image"> StarCode Moore</a>
                                                 </h2>
                                             </td>
-                                            <td class="text-primary">$1,54,220</td>
+                                            <td class="text-primary">Ksh 154,220.00</td>
                                             <td>16 Mar 2022</td>
                                             <td class="text-end">
-                                                <a href="edit-invoice.html"
+                                                <a href="#"
                                                     class="btn btn-sm btn-white text-success me-2">
                                                     <i class="far fa-edit me-1"></i> Edit</a>
                                                 <a class="btn btn-sm btn-white text-danger" href="#" data-bs-toggle="modal" data-bs-target="#delete_paid">

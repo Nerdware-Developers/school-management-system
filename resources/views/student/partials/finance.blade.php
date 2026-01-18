@@ -7,7 +7,8 @@
                 <label>Term Name<span class="login-danger"></span></label>
                 <input type="text" class="form-control @error('term_name') is-invalid @enderror"
                     name="term_name" placeholder="e.g., Term 1"
-                    value="{{ old('term_name') }}">
+                    value="{{ old('term_name', $currentTerm ?? '') }}">
+                <small class="form-text text-muted">Auto-filled based on current date (can be changed)</small>
                 @error('term_name')
                     <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
                 @enderror
@@ -31,7 +32,9 @@
             <div class="form-group local-forms">
                 <label>Financial Year<span class="login-danger"></span></label>
                 <input type="text" class="form-control @error('financial_year') is-invalid @enderror"
-                    name="financial_year" placeholder="Enter Financial Year" value="{{ old('financial_year') }}">
+                    name="financial_year" placeholder="Enter Financial Year" 
+                    value="{{ old('financial_year', $currentAcademicYear ?? '') }}">
+                <small class="form-text text-muted">Auto-filled based on current date (can be changed)</small>
                 @error('financial_year')
                     <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
                 @enderror

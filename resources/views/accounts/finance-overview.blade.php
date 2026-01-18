@@ -14,18 +14,40 @@
                     </ul>
                 </div>
                 <div class="col-auto">
-                    <form method="GET" class="d-flex align-items-center">
-                        <label class="me-2 mb-0 text-muted">Academic Year</label>
-                        <select name="year" class="form-select" style="min-width: 140px" onchange="this.form.submit()">
-                            @forelse ($availableYears as $year)
-                                <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
-                                    {{ $year }}
-                                </option>
-                            @empty
-                                <option value="">No Years</option>
-                            @endforelse
-                        </select>
-                    </form>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <form method="GET" class="d-flex align-items-center me-3">
+                            <label class="me-2 mb-0 text-muted">Academic Year</label>
+                            <select name="year" class="form-select" style="min-width: 140px" onchange="this.form.submit()">
+                                @forelse ($availableYears as $year)
+                                    <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                        {{ $year }}
+                                    </option>
+                                @empty
+                                    <option value="">No Years</option>
+                                @endforelse
+                            </select>
+                        </form>
+                        <form method="GET" id="balanceFilterForm" class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="year" value="{{ $selectedYear }}">
+                            <select name="balance_operator" class="form-select" style="min-width: 150px">
+                                <option value="">Balance Filter</option>
+                                <option value="greater" {{ request('balance_operator') == 'greater' ? 'selected' : '' }}>> Greater Than</option>
+                                <option value="greater_equal" {{ request('balance_operator') == 'greater_equal' ? 'selected' : '' }}>>= Greater or Equal</option>
+                                <option value="less" {{ request('balance_operator') == 'less' ? 'selected' : '' }}>< Less Than</option>
+                                <option value="less_equal" {{ request('balance_operator') == 'less_equal' ? 'selected' : '' }}><= Less or Equal</option>
+                                <option value="equal" {{ request('balance_operator') == 'equal' ? 'selected' : '' }}>= Equal To</option>
+                                <option value="not_zero" {{ request('balance_operator') == 'not_zero' ? 'selected' : '' }}>≠ Not Zero</option>
+                                <option value="zero" {{ request('balance_operator') == 'zero' ? 'selected' : '' }}>= Zero</option>
+                            </select>
+                            <input type="number" name="balance_amount" class="form-control" 
+                                placeholder="Amount..." value="{{ request('balance_amount') }}" 
+                                step="0.01" min="0" style="min-width: 120px">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                            <a href="#" id="downloadBalanceBtn" class="btn btn-outline-primary">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -246,6 +268,38 @@
 </div>
 
 @section('script')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Download button for balance filter
+    $('#downloadBalanceBtn').on('click', function(e) {
+        e.preventDefault();
+        
+        // Get current filter values from form
+        var balanceOperator = $('select[name="balance_operator"]').val() || '';
+        var balanceAmount = $('input[name="balance_amount"]').val() || '';
+        
+        // Build query string
+        var params = {};
+        if (balanceOperator) {
+            params.balance_operator = balanceOperator;
+        }
+        if (balanceAmount) {
+            params.balance_amount = balanceAmount;
+        }
+        
+        // Build URL with query parameters
+        var url = '{{ route("account/finance/export-balance") }}';
+        if (Object.keys(params).length > 0) {
+            url += '?' + $.param(params);
+        }
+        
+        // Navigate to export URL
+        window.location.href = url;
+    });
+});
+</script>
+<script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Income vs Expenses chart

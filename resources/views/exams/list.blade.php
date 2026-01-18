@@ -26,6 +26,9 @@
                                     <h3 class="page-title">Exam List</h3>
                                 </div>
                                 <div class="col-auto text-end float-end ms-auto download-grp">
+                                    <button type="button" id="bulkDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+                                        <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                                    </button>
                                     <a href="{{ route('add/exam/page') }}" class="btn btn-primary">
                                         <i class="fas fa-plus"></i> Add Exam
                                     </a>
@@ -39,7 +42,7 @@
                                     <tr>
                                         <th>
                                             <div class="form-check check-tables">
-                                                <input class="form-check-input" type="checkbox" value="something">
+                                                <input class="form-check-input" type="checkbox" id="selectAll" value="">
                                             </div>
                                         </th>
                                         <th>Exam Type</th>
@@ -56,7 +59,11 @@
                                     <tr>
                                         <td>
                                             <div class="form-check check-tables">
-                                                <input class="form-check-input" type="checkbox" value="something">
+                                                <input class="form-check-input exam-group-checkbox" type="checkbox" 
+                                                    value="{{ $group->exam_type }}|{{ $group->term }}|{{ $group->class_id }}"
+                                                    data-exam-type="{{ $group->exam_type }}"
+                                                    data-term="{{ $group->term }}"
+                                                    data-class-id="{{ $group->class_id }}">
                                             </div>
                                         </td>
                                         <td>
@@ -156,6 +163,14 @@
 </div>
 
 @section('script')
+<style>
+    tr:has(.exam-group-checkbox:checked) {
+        background-color: #e3f2fd !important;
+    }
+    #bulkDeleteBtn {
+        transition: all 0.3s ease;
+    }
+</style>
 <script>
     $(document).on('click', '.exam_group_delete', function() {
         var examType = $(this).data('exam-type');
@@ -164,6 +179,106 @@
         $('#delete_exam_type').val(examType);
         $('#delete_term').val(term);
         $('#delete_class_id').val(classId);
+    });
+
+    // Bulk delete functionality
+    $(document).ready(function() {
+        // Select All checkbox
+        $('#selectAll').on('change', function() {
+            $('.exam-group-checkbox').prop('checked', $(this).prop('checked'));
+            updateDeleteButton();
+        });
+
+        // Individual checkbox change
+        $(document).on('change', '.exam-group-checkbox', function() {
+            var totalCheckboxes = $('.exam-group-checkbox').length;
+            var checkedCheckboxes = $('.exam-group-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+            updateDeleteButton();
+        });
+
+        function updateDeleteButton() {
+            var selectedCount = $('.exam-group-checkbox:checked').length;
+            if (selectedCount > 0) {
+                $('#bulkDeleteBtn').show();
+                $('#selectedCount').text(selectedCount);
+            } else {
+                $('#bulkDeleteBtn').hide();
+            }
+        }
+
+        // Bulk delete
+        $('#bulkDeleteBtn').on('click', function() {
+            var selectedGroups = [];
+            $('.exam-group-checkbox:checked').each(function() {
+                selectedGroups.push({
+                    exam_type: $(this).data('exam-type'),
+                    term: $(this).data('term'),
+                    class_id: $(this).data('class-id')
+                });
+            });
+
+            if (selectedGroups.length === 0) {
+                toastr.warning('Please select at least one exam group to delete');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete ' + selectedGroups.length + ' exam group(s)? This will delete all exams and their results in these groups. This action cannot be undone.')) {
+                return;
+            }
+
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
+
+            // Get all exam IDs for selected groups
+            var examIds = [];
+            $.ajax({
+                url: '{{ route("exams.get-ids-by-groups") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    groups: selectedGroups
+                },
+                success: function(response) {
+                    if (response.success && response.exam_ids && response.exam_ids.length > 0) {
+                        // Now delete all exams
+                        $.ajax({
+                            url: '{{ route("exams.bulk-delete") }}',
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                exam_ids: response.exam_ids
+                            },
+                            success: function(deleteResponse) {
+                                if (deleteResponse.success) {
+                                    toastr.success(deleteResponse.message);
+                                    location.reload();
+                                } else {
+                                    toastr.error(deleteResponse.message || 'Failed to delete exams');
+                                }
+                            },
+                            error: function(xhr) {
+                                var message = 'Failed to delete exams';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    message = xhr.responseJSON.message;
+                                }
+                                toastr.error(message);
+                            },
+                            complete: function() {
+                                $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                            }
+                        });
+                    } else {
+                        toastr.error('No exams found to delete');
+                        $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error('Failed to retrieve exam IDs');
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                }
+            });
+        });
     });
 </script>
 @endsection

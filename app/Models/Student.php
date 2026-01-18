@@ -64,6 +64,32 @@ class Student extends Model
         return $this->hasOne(StudentFeeTerm::class)->latestOfMany();
     }
 
+    /**
+     * Get the current fee term (latest term by created_at)
+     * This is the source of truth for the student's current balance
+     */
+    public function currentFeeTerm()
+    {
+        return $this->hasOne(StudentFeeTerm::class)->latestOfMany('created_at');
+    }
+
+    /**
+     * Accessor for current balance from latest fee term
+     * Returns the closing_balance from the latest fee term, or 0 if no term exists
+     */
+    public function getCurrentBalanceAttribute()
+    {
+        // Use the relationship to get the latest fee term
+        $latestTerm = $this->currentFeeTerm;
+        
+        if (!$latestTerm) {
+            return 0;
+        }
+        
+        // Return the closing_balance, ensuring it's never negative for display purposes
+        return max((float) $latestTerm->closing_balance, 0);
+    }
+
     public function busAssignment()
     {
         return $this->hasOne(StudentBusAssignment::class)->where('status', 'active');
@@ -72,6 +98,16 @@ class Student extends Model
     public function busAssignments()
     {
         return $this->hasMany(StudentBusAssignment::class);
+    }
+
+    public function examResults()
+    {
+        return $this->hasMany(ExamResult::class);
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
     }
 
 }

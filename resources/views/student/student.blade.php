@@ -55,13 +55,19 @@
                                         <h3 class="page-title">Students</h3>
                                     </div>
                                     <div class="col-auto text-end float-end ms-auto download-grp">
+                                        <button type="button" id="bulkDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+                                            <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                                        </button>
                                         <a href="{{ route('student/list') }}" class="btn btn-outline-gray me-2 active">
                                             <i class="fa fa-list" aria-hidden="true"></i>
+                                        </a>
+                                        <a href="{{ route('student/list-by-class') }}" class="btn btn-outline-gray me-2" title="View by Class">
+                                            <i class="fas fa-layer-group" aria-hidden="true"></i>
                                         </a>
                                         <a href="{{ route('student/grid') }}" class="btn btn-outline-gray me-2">
                                             <i class="fa fa-th" aria-hidden="true"></i>
                                         </a>
-                                        <a href="#" class="btn btn-outline-primary me-2"><i class="fas fa-download"></i> Download</a>
+                                        <a href="#" id="downloadBtn" class="btn btn-outline-primary me-2"><i class="fas fa-download"></i> Download</a>
                                         <a href="{{ route('student/add/page') }}" class="btn btn-primary"><i class="fas fa-plus"></i></a>
                                     </div>
                                 </div>
@@ -74,7 +80,7 @@
                                         <tr>
                                             <th>
                                                 <div class="form-check check-tables">
-                                                    <input class="form-check-input" type="checkbox" value="something">
+                                                    <input class="form-check-input" type="checkbox" id="selectAll" value="">
                                                 </div>
                                             </th>
                                             <th>ADM</th>
@@ -92,7 +98,8 @@
                                         <tr>
                                             <td>
                                                 <div class="form-check check-tables">
-                                                    <input class="form-check-input" type="checkbox" value="something">
+                                                    <input class="form-check-input student-checkbox" type="checkbox" 
+                                                        value="{{ $list->id }}" data-student-id="{{ $list->id }}" data-avatar="{{ $list->image }}">
                                                 </div>
                                             </td>
                                             <td>{{ $list->admission_number }}</td>
@@ -169,6 +176,14 @@
         </div>
     </div>
     @section('script')
+    <style>
+        tr:has(.student-checkbox:checked) {
+            background-color: #e3f2fd !important;
+        }
+        #bulkDeleteBtn {
+            transition: all 0.3s ease;
+        }
+    </style>
 
     {{-- delete js --}}
     <script>
@@ -177,6 +192,90 @@
             var _this = $(this).parents('tr');
             $('.e_id').val(_this.find('.id').text());
             $('.e_avatar').val(_this.find('.avatar').text());
+        });
+
+        // Bulk delete functionality
+        $(document).ready(function() {
+            // Select All checkbox
+            $('#selectAll').on('change', function() {
+                $('.student-checkbox').prop('checked', $(this).prop('checked'));
+                updateDeleteButton();
+            });
+
+            // Individual checkbox change
+            $(document).on('change', '.student-checkbox', function() {
+                var totalCheckboxes = $('.student-checkbox').length;
+                var checkedCheckboxes = $('.student-checkbox:checked').length;
+                $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+                updateDeleteButton();
+            });
+
+            // Update delete button visibility and count
+            function updateDeleteButton() {
+                var selectedCount = $('.student-checkbox:checked').length;
+                if (selectedCount > 0) {
+                    $('#bulkDeleteBtn').show();
+                    $('#selectedCount').text(selectedCount);
+                } else {
+                    $('#bulkDeleteBtn').hide();
+                }
+            }
+
+            // Bulk delete
+            $('#bulkDeleteBtn').on('click', function() {
+                var selectedIds = [];
+                $('.student-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                });
+
+                if (selectedIds.length === 0) {
+                    toastr.warning('Please select at least one student to delete');
+                    return;
+                }
+
+                if (!confirm('Are you sure you want to delete ' + selectedIds.length + ' student(s)? This action cannot be undone.')) {
+                    return;
+                }
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
+
+                $.ajax({
+                    url: '{{ route("students.bulk-delete") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        student_ids: selectedIds
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            toastr.success(response.message);
+                            $('.student-checkbox:checked').each(function() {
+                                $(this).closest('tr').fadeOut(300, function() {
+                                    $(this).remove();
+                                    updateDeleteButton();
+                                    if ($('.student-checkbox').length === 0) {
+                                        location.reload();
+                                    }
+                                });
+                            });
+                            $('#selectAll').prop('checked', false);
+                        } else {
+                            toastr.error(response.message || 'Failed to delete students');
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = 'Failed to delete students';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        toastr.error(message);
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">' + $('.student-checkbox:checked').length + '</span>)');
+                    }
+                });
+            });
         });
     </script>
     <script>
@@ -198,6 +297,33 @@ $(document).ready(function () {
                 console.error("Failed to fetch filtered students");
             }
         });
+    });
+
+    // Download button - preserve current filters
+    $('#downloadBtn').on('click', function(e) {
+        e.preventDefault();
+        
+        // Get current filter values from form inputs
+        var classFilter = $('input[name="class"]').val() || '';
+        var nameFilter = $('input[name="name"]').val() || '';
+        
+        // Build query string
+        var params = {};
+        if (classFilter) {
+            params.class = classFilter;
+        }
+        if (nameFilter) {
+            params.name = nameFilter;
+        }
+        
+        // Build URL with query parameters
+        var url = '{{ route("student/export") }}';
+        if (Object.keys(params).length > 0) {
+            url += '?' + $.param(params);
+        }
+        
+        // Navigate to export URL
+        window.location.href = url;
     });
 });
 </script>

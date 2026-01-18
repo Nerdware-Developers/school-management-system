@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/feather/feather.css') }}">
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/icons/flags/flags.css') }}">
-    <link rel="stylesheet" href="{{ URL::to('assets/css/bootstrap-datetimepicker.min.cs') }}s">
+    <link rel="stylesheet" href="{{ URL::to('assets/css/bootstrap-datetimepicker.min.css') }}">
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/fontawesome/css/fontawesome.min.css') }}">
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/fontawesome/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ URL::to('assets/plugins/icons/feather/feather.css') }}">
@@ -21,6 +21,48 @@
 	<link rel="stylesheet" href="{{ URL::to('assets/css/toastr.min.css') }}">
 	<script src="{{ URL::to('assets/js/toastr_jquery.min.js') }}"></script>
 	<script src="{{ URL::to('assets/js/toastr.min.js') }}"></script>
+	<style>
+		.notification-message.unread {
+			background-color: #f8f9fa;
+			border-left: 3px solid #0d6efd;
+		}
+		.notification-message.unread:hover {
+			background-color: #e9ecef;
+		}
+		.notification-message.read {
+			opacity: 0.8;
+		}
+		.notification-message a {
+			text-decoration: none;
+			color: inherit;
+		}
+		.notification-message a:hover {
+			color: inherit;
+		}
+		.noti-content {
+			max-height: 400px;
+			overflow-y: auto;
+		}
+		.notification-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+		.notification-list li {
+			border-bottom: 1px solid #e9ecef;
+		}
+		.notification-list li:last-child {
+			border-bottom: none;
+		}
+		#notificationBadge {
+			animation: pulse 2s infinite;
+		}
+		@keyframes pulse {
+			0% { transform: scale(1); }
+			50% { transform: scale(1.1); }
+			100% { transform: scale(1); }
+		}
+	</style>
 </head>
 <body>
     <div class="main-wrapper">
@@ -66,80 +108,25 @@
                 <li class="nav-item dropdown noti-dropdown me-2">
                     <a href="#" class="dropdown-toggle nav-link header-nav-list" data-bs-toggle="dropdown" id="notificationDropdown" style="position: relative;">
                         <img src="{{ URL::to('assets/img/icons/header-icon-05.svg') }}" alt="">
-                        <span class="badge rounded-pill bg-danger" id="notificationBadge" style="display: none; position: absolute; top: 0; right: 0; font-size: 10px;">0</span>
+                        <span class="badge rounded-pill bg-danger" id="notificationBadge" style="display: none; position: absolute; top: 0; right: 0; font-size: 10px; min-width: 18px; height: 18px; line-height: 18px; padding: 0 5px;">0</span>
                     </a>
-                    <div class="dropdown-menu notifications">
-                        <div class="topnav-dropdown-header">
+                    <div class="dropdown-menu notifications" style="width: 350px; max-height: 500px; overflow-y: auto;">
+                        <div class="topnav-dropdown-header d-flex justify-content-between align-items-center">
                             <span class="notification-title">Notifications</span>
-                            <a href="javascript:void(0)" class="clear-noti" id="markAllRead"> Clear All </a>
+                            <a href="javascript:void(0)" class="clear-noti" id="markAllRead" style="font-size: 12px;"> Clear All </a>
                         </div>
                         <div class="noti-content">
-                            <ul class="notification-list">
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media d-flex">
-                                            <span class="avatar avatar-sm flex-shrink-0">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{{ URL::to('assets/img/logo-small.png') }}">
-                                            </span>
-                                            <div class="media-body flex-grow-1">
-                                                <p class="noti-details"><span class="noti-title">Carlson Tech</span> has
-                                                    approved <span class="noti-title">your estimate</span></p>
-                                                <p class="noti-time"><span class="notification-time">4 mins ago</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media d-flex">
-                                            <span class="avatar avatar-sm flex-shrink-0">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{{ URL::to('assets/img/logo-small.png') }}">
-                                            </span>
-                                            <div class="media-body flex-grow-1">
-                                                <p class="noti-details">
-                                                    <span class="noti-title">International Software Inc</span> has sent you a invoice in the amount of
-                                                    <span class="noti-title">$218</span>
-                                                </p>
-                                                <p class="noti-time">
-                                                    <span class="notification-time">6 mins ago</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media d-flex">
-                                            <span class="avatar avatar-sm flex-shrink-0">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{{ URL::to('assets/img/logo-small.png') }}">
-                                            </span>
-                                            <div class="media-body flex-grow-1">
-                                                <p class="noti-details"><span class="noti-title">John Hendry</span> sent a cancellation request <span class="noti-title">Apple iPhone XR</span></p>
-                                                <p class="noti-time"><span class="notification-time">8 mins ago</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media d-flex">
-                                            <span class="avatar avatar-sm flex-shrink-0">
-                                                <img class="avatar-img rounded-circle" alt="" src="{{ URL::to('assets/img/logo-small.png') }}">
-                                            </span>
-                                            <div class="media-body flex-grow-1">
-                                                <p class="noti-details"><span class="noti-title">Mercury Software Inc</span> added a new product <span class="noti-title">Apple MacBook Pro</span></p>
-                                                <p class="noti-time"><span class="notification-time">12 mins ago</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </a>
+                            <ul class="notification-list" id="notificationList">
+                                <li class="text-center p-3">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted mt-2 mb-0">Loading notifications...</p>
                                 </li>
                             </ul>
                         </div>
                         <div class="topnav-dropdown-footer">
-                            <a href="#">View all Notifications</a>
+                            <a href="{{ route('notifications.index') }}">View all Notifications</a>
                         </div>
                     </div>
                 </li>
@@ -171,7 +158,7 @@
                             </div>
                         </div>
                         <a class="dropdown-item" href="{{ route('user/profile/page') }}">My Profile</a>
-                        <a class="dropdown-item" href="inbox.html">Inbox</a>
+                        <a class="dropdown-item" href="{{ route('notifications.index') }}">Inbox</a>
                         <a class="dropdown-item" href="{{ route('logout') }}">Logout</a>
                     </div>
                 </li>
@@ -208,61 +195,121 @@
                 closeOnSelect: false
             });
 
-            // Load notifications
+            // Load notifications on page load
             loadNotifications();
+            updateBadgeCount();
 
             // Refresh notifications every 30 seconds
-            setInterval(loadNotifications, 30000);
+            setInterval(function() {
+                loadNotifications();
+                updateBadgeCount();
+            }, 30000);
 
             // Mark all as read
             $('#markAllRead').on('click', function(e) {
                 e.preventDefault();
-                $.post('{{ route("notifications.mark-all-read") }}', {
-                    _token: '{{ csrf_token() }}'
-                }, function() {
-                    loadNotifications();
+                $.ajax({
+                    url: '{{ route("notifications.mark-all-read") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        loadNotifications();
+                        updateBadgeCount();
+                        toastr.success('All notifications marked as read');
+                    },
+                    error: function() {
+                        toastr.error('Failed to mark notifications as read');
+                    }
                 });
+            });
+
+            // Mark as read when clicking on notification
+            $(document).on('click', '.notification-item', function(e) {
+                var notificationId = $(this).data('id');
+                var link = $(this).data('link');
+                
+                if (notificationId && !$(this).hasClass('read')) {
+                    markAsRead(notificationId, $(this));
+                }
+                
+                if (link && link !== '#') {
+                    window.location.href = link;
+                }
             });
         });
 
         function loadNotifications() {
-            $.get('{{ route("notifications.recent") }}', function(notifications) {
-                var html = '';
-                if (notifications.length === 0) {
-                    html = '<li class="text-center p-3"><span class="text-muted">No notifications</span></li>';
-                } else {
-                    notifications.forEach(function(notif) {
-                        var timeAgo = getTimeAgo(notif.created_at);
-                        var icon = getNotificationIcon(notif.type);
-                        var readClass = notif.is_read ? '' : 'unread';
-                        html += '<li class="notification-message ' + readClass + '">';
-                        html += '<a href="' + (notif.link || '#') + '" onclick="markAsRead(' + notif.id + ')">';
-                        html += '<div class="media d-flex">';
-                        html += '<span class="avatar avatar-sm flex-shrink-0">';
-                        html += '<i class="' + icon + '"></i>';
-                        html += '</span>';
-                        html += '<div class="media-body flex-grow-1">';
-                        html += '<p class="noti-details"><span class="noti-title">' + notif.title + '</span></p>';
-                        html += '<p class="noti-time"><span class="notification-time">' + timeAgo + '</span></p>';
-                        html += '</div></div></a></li>';
-                    });
-                }
-                $('#notificationList ul').html(html);
-            });
-
-            // Update badge count
-            $.get('{{ route("notifications.unread-count") }}', function(data) {
-                if (data.count > 0) {
-                    $('#notificationBadge').text(data.count).show();
-                } else {
-                    $('#notificationBadge').hide();
+            $.ajax({
+                url: '{{ route("notifications.recent") }}',
+                method: 'GET',
+                success: function(notifications) {
+                    var html = '';
+                    if (!notifications || notifications.length === 0) {
+                        html = '<li class="text-center p-4"><span class="text-muted"><i class="fas fa-bell-slash me-2"></i>No notifications</span></li>';
+                    } else {
+                        notifications.forEach(function(notif) {
+                            var timeAgo = getTimeAgo(notif.created_at);
+                            var icon = getNotificationIcon(notif.type);
+                            var readClass = notif.is_read ? 'read' : 'unread';
+                            var link = notif.link || '#';
+                            
+                            html += '<li class="notification-message ' + readClass + '">';
+                            html += '<a href="javascript:void(0)" class="notification-item d-block" data-id="' + notif.id + '" data-link="' + link + '">';
+                            html += '<div class="media d-flex">';
+                            html += '<span class="avatar avatar-sm flex-shrink-0 me-2">';
+                            html += '<div class="avatar-img rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: ' + getNotificationColor(notif.type) + ';">';
+                            html += '<i class="' + icon + '" style="font-size: 18px;"></i>';
+                            html += '</div>';
+                            html += '</span>';
+                            html += '<div class="media-body flex-grow-1">';
+                            html += '<p class="noti-details mb-1"><span class="noti-title fw-bold">' + escapeHtml(notif.title) + '</span></p>';
+                            html += '<p class="noti-message text-muted mb-1" style="font-size: 12px;">' + escapeHtml(notif.message.substring(0, 60)) + (notif.message.length > 60 ? '...' : '') + '</p>';
+                            html += '<p class="noti-time mb-0"><span class="notification-time" style="font-size: 11px;">' + timeAgo + '</span></p>';
+                            html += '</div>';
+                            if (!notif.is_read) {
+                                html += '<span class="badge bg-danger rounded-circle" style="width: 8px; height: 8px; padding: 0;"></span>';
+                            }
+                            html += '</div></a></li>';
+                        });
+                    }
+                    $('#notificationList').html(html);
+                },
+                error: function() {
+                    $('#notificationList').html('<li class="text-center p-3"><span class="text-danger">Failed to load notifications</span></li>');
                 }
             });
         }
 
-        function markAsRead(id) {
-            $.post('/notifications/' + id + '/read', {
-                _token: '{{ csrf_token() }}'
+        function updateBadgeCount() {
+            $.ajax({
+                url: '{{ route("notifications.unread-count") }}',
+                method: 'GET',
+                success: function(data) {
+                    if (data.count > 0) {
+                        $('#notificationBadge').text(data.count > 99 ? '99+' : data.count).show();
+                    } else {
+                        $('#notificationBadge').hide();
+                    }
+                }
+            });
+        }
+
+        function markAsRead(id, element) {
+            $.ajax({
+                url: '/notifications/' + id + '/read',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function() {
+                    if (element) {
+                        element.closest('.notification-message').removeClass('unread').addClass('read');
+                        element.find('.badge').remove();
+                    }
+                    updateBadgeCount();
+                }
             });
         }
 
@@ -271,27 +318,64 @@
             var now = new Date();
             var seconds = Math.floor((now - date) / 1000);
             
-            if (seconds < 60) return seconds + ' seconds ago';
+            if (seconds < 60) return 'Just now';
             var minutes = Math.floor(seconds / 60);
-            if (minutes < 60) return minutes + ' mins ago';
+            if (minutes < 60) return minutes + (minutes === 1 ? ' min ago' : ' mins ago');
             var hours = Math.floor(minutes / 60);
-            if (hours < 24) return hours + ' hours ago';
+            if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
             var days = Math.floor(hours / 24);
-            return days + ' days ago';
+            if (days < 7) return days + (days === 1 ? ' day ago' : ' days ago');
+            var weeks = Math.floor(days / 7);
+            if (weeks < 4) return weeks + (weeks === 1 ? ' week ago' : ' weeks ago');
+            var months = Math.floor(days / 30);
+            return months + (months === 1 ? ' month ago' : ' months ago');
         }
 
         function getNotificationIcon(type) {
             var icons = {
-                'info': 'fas fa-info-circle text-info',
-                'success': 'fas fa-check-circle text-success',
-                'warning': 'fas fa-exclamation-triangle text-warning',
-                'error': 'fas fa-times-circle text-danger',
-                'fee': 'fas fa-money-bill text-primary',
-                'attendance': 'fas fa-user-check text-info',
-                'exam': 'fas fa-file-alt text-warning',
-                'event': 'fas fa-calendar text-primary'
+                'info': 'fas fa-info-circle',
+                'success': 'fas fa-check-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'error': 'fas fa-times-circle',
+                'fee': 'fas fa-money-bill-wave',
+                'attendance': 'fas fa-user-check',
+                'exam': 'fas fa-file-alt',
+                'event': 'fas fa-calendar-alt',
+                'school_date': 'fas fa-school',
+                'parent_exam': 'fas fa-graduation-cap',
+                'parent_event': 'fas fa-calendar-check',
+                'parent_fee': 'fas fa-credit-card'
             };
-            return icons[type] || 'fas fa-bell text-secondary';
+            return icons[type] || 'fas fa-bell';
+        }
+
+        function getNotificationColor(type) {
+            var colors = {
+                'info': '#0dcaf0',
+                'success': '#198754',
+                'warning': '#ffc107',
+                'error': '#dc3545',
+                'fee': '#0d6efd',
+                'attendance': '#20c997',
+                'exam': '#fd7e14',
+                'event': '#6f42c1',
+                'school_date': '#e83e8c',
+                'parent_exam': '#20c997',
+                'parent_event': '#0dcaf0',
+                'parent_fee': '#ffc107'
+            };
+            return colors[type] || '#6c757d';
+        }
+
+        function escapeHtml(text) {
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
     </script>
 </body>
