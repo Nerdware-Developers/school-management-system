@@ -522,12 +522,18 @@ class StudentController extends Controller
             // Get default settings if not provided
             $settings = SchoolSettings::getSettings();
             
-            // CRITICAL: Always use default_fee_amount from settings if fee_amount is not provided or is 0
-            // This ensures fee terms are created even when financial form is skipped
+            // CRITICAL: Use grade-based fee structure instead of default_fee_amount
+            // Get fee amount based on student's class/grade
             $requestFeeAmount = $request->input('fee_amount');
             if ($requestFeeAmount === null || $requestFeeAmount === '' || (float)$requestFeeAmount <= 0) {
-                // Financial form was skipped or fee_amount is 0 - use default from settings
-                $feeAmount = (float) $settings->default_fee_amount;
+                // Financial form was skipped or fee_amount is 0 - use grade-based fee
+                $studentClass = $request->input('class', '');
+                $feeAmount = $this->getFeeAmountForGrade($studentClass);
+                
+                // Fallback to default_fee_amount if grade fee not found (for backward compatibility)
+                if ($feeAmount <= 0) {
+                    $feeAmount = (float) $settings->default_fee_amount;
+                }
             } else {
                 $feeAmount = (float) $requestFeeAmount;
             }
@@ -1250,9 +1256,13 @@ class StudentController extends Controller
         // we still create a term but with closed status. However, this should be rare since
         // studentSave() ensures default_fee_amount is used when financial form is skipped.
         if ($feeAmount <= 0 && $amountPaid == 0) {
-            // Double-check: if default_fee_amount exists in settings, use it
-            // This is a final safety net in case the logic above didn't catch it
-            if ($settings->default_fee_amount > 0) {
+            // Try to get grade-based fee for the student
+            $gradeFee = $this->getFeeAmountForGrade($student->class);
+            if ($gradeFee > 0) {
+                $feeAmount = $gradeFee;
+                // Continue to create term with grade-based fee amount (don't return)
+            } elseif ($settings->default_fee_amount > 0) {
+                // Fallback to default_fee_amount if grade fee not found
                 $feeAmount = (float) $settings->default_fee_amount;
                 // Continue to create term with default fee amount (don't return)
             } else {
@@ -1317,6 +1327,48 @@ class StudentController extends Controller
         $year = $academicYear ?: now()->format('Y');
 
         return "Term {$count} ({$year})";
+    }
+
+    /**
+     * Get fee amount for a specific grade/class
+     * Uses grade-based fee structure instead of default fee
+     * 
+     * @param string $grade The student's grade/class (e.g., 'GRADE 1', 'PP1', 'PLAY GROUP')
+     * @return float The fee amount for that grade, or 0 if not found
+     */
+    protected function getFeeAmountForGrade(string $grade): float
+    {
+        if (empty($grade)) {
+            return 0;
+        }
+
+        // Normalize grade name - try to match common variations
+        $normalizedGrade = strtoupper(trim($grade));
+        
+        // Try exact match first
+        $gradeFee = \App\Models\GradeFee::getFeeForGrade($normalizedGrade);
+        if ($gradeFee) {
+            return (float) $gradeFee->total_fee;
+        }
+
+        // Try matching with common variations
+        // Handle cases like "Grade 1" vs "GRADE 1", "PP1" vs "PP 1", etc.
+        $variations = [
+            $normalizedGrade,
+            str_replace(' ', '', $normalizedGrade),
+            str_replace('GRADE', 'GRADE ', $normalizedGrade),
+            str_replace('GRADE ', 'GRADE', $normalizedGrade),
+        ];
+
+        foreach ($variations as $variation) {
+            $gradeFee = \App\Models\GradeFee::getFeeForGrade($variation);
+            if ($gradeFee) {
+                return (float) $gradeFee->total_fee;
+            }
+        }
+
+        // If no match found, return 0 (will fallback to default_fee_amount in calling code)
+        return 0;
     }
 
     /**
@@ -1442,10 +1494,14 @@ class StudentController extends Controller
         try {
             $settings = SchoolSettings::getSettings();
             
-            // Recalculate closing balance: opening + new_fee - amount_paid
-            $newClosingBalance = $term->opening_balance + $settings->default_fee_amount - $term->amount_paid;
+            // Use grade-based fee instead of default_fee_amount
+            $gradeFee = $this->getFeeAmountForGrade($student->class);
+            $newFeeAmount = $gradeFee > 0 ? $gradeFee : (float) $settings->default_fee_amount;
             
-            $term->fee_amount = $settings->default_fee_amount;
+            // Recalculate closing balance: opening + new_fee - amount_paid
+            $newClosingBalance = $term->opening_balance + $newFeeAmount - $term->amount_paid;
+            
+            $term->fee_amount = $newFeeAmount;
             $term->closing_balance = $newClosingBalance;
             
             // Update status based on new closing balance
@@ -1461,11 +1517,11 @@ class StudentController extends Controller
 
             // Update student's balance and fee_amount
             $student->balance = max($newClosingBalance, 0);
-            $student->fee_amount = $settings->default_fee_amount;
+            $student->fee_amount = $newFeeAmount;
             $student->save();
 
             DB::commit();
-            Toastr::success('Fee amount updated successfully to Ksh' . number_format($settings->default_fee_amount, 2) . '. Balance recalculated.', 'Success');
+            Toastr::success('Fee amount updated successfully to Ksh' . number_format($newFeeAmount, 2) . '. Balance recalculated.', 'Success');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update term fee: ' . $e->getMessage());

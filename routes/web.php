@@ -61,6 +61,8 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
     // ----------------------------- user controller ---------------------//
     Route::controller(UserManagementController::class)->group(function () {
         Route::get('list/users', 'index')->middleware('auth')->name('list/users');
+        Route::get('user/add/page', 'addUser')->middleware('auth')->name('user/add/page');
+        Route::post('user/add/save', 'saveUser')->middleware('auth')->name('user/add/save');
         Route::post('change/password', 'changePassword')->middleware('auth')->name('change/password');
         Route::get('view/user/edit/{id}', 'userView')->middleware('auth');
         Route::post('user/update', 'userUpdate')->middleware('auth')->name('user/update');

@@ -24,6 +24,76 @@ class UserManagementController extends Controller
         return view('usermanagement.list_users');
     }
 
+    /** add user page */
+    public function addUser()
+    {
+        $role = DB::table('role_type_users')->get();
+        return view('usermanagement.add_user', compact('role'));
+    }
+
+    /** save user */
+    public function saveUser(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            if (Session::get('role_name') === 'Admin' || Session::get('role_name') === 'Super Admin')
+            {
+                $request->validate([
+                    'name'          => 'required|string|max:255',
+                    'email'         => 'required|string|email|max:255|unique:users',
+                    'role_name'     => 'required|string|max:255',
+                    'password'      => 'required|string|min:8|confirmed',
+                    'position'      => 'nullable|string|max:255',
+                    'phone_number'  => 'nullable|string|max:20',
+                    'date_of_birth' => 'nullable|date',
+                    'department'    => 'nullable|string|max:255',
+                    'status'        => 'required|string|max:255',
+                    'avatar'        => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                ]);
+
+                $dt = Carbon::now();
+                $todayDate = $dt->toDayDateTimeString();
+
+                $image_name = 'photo_defaults.jpg';
+                if ($request->hasFile('avatar')) {
+                    $image = $request->file('avatar');
+                    $extension = $image->getClientOriginalExtension();
+                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    if (!in_array(strtolower($extension), $allowedExtensions)) {
+                        throw new \Exception('Invalid file type. Only images are allowed.');
+                    }
+                    $image_name = time() . '_' . rand(1000, 9999) . '.' . $extension;
+                    $image->move(public_path('/images/'), $image_name);
+                }
+
+                User::create([
+                    'name'          => $request->name,
+                    'email'         => $request->email,
+                    'role_name'     => $request->role_name,
+                    'password'       => Hash::make($request->password),
+                    'join_date'      => $todayDate,
+                    'position'       => $request->position ?? null,
+                    'phone_number'   => $request->phone_number ?? null,
+                    'date_of_birth'  => $request->date_of_birth ?? null,
+                    'department'     => $request->department ?? null,
+                    'status'         => $request->status,
+                    'avatar'         => $image_name,
+                ]);
+
+                DB::commit();
+                Toastr::success('User created successfully :)', 'Success');
+                return redirect()->route('list/users');
+            } else {
+                Toastr::error('You do not have permission to add users :)', 'Error');
+                return redirect()->back();
+            }
+        } catch(\Exception $e) {
+            DB::rollback();
+            Toastr::error('User creation failed: ' . $e->getMessage(), 'Error');
+            return redirect()->back();
+        }
+    }
+
     /** user view */
     public function userView($id)
     {
