@@ -158,11 +158,20 @@ class InvoiceController extends Controller
     /** save record incoice */
     public function saveRecord(Request $request)
     {
+        // Log incoming request for debugging
+        \Log::info('Invoice save request received', [
+            'customer_name' => $request->customer_name,
+            'po_number' => $request->po_number,
+            'items_count' => count($request->items ?? []),
+            'items' => $request->items,
+            'categories' => $request->category,
+        ]);
+        
         $request->validate([
             'customer_name' => 'required|string',
             'po_number'  => 'required|string',
             'due_date'   => 'required|string',
-            'items'      => 'required|array|min:1',
+            'items'      => 'required|array',
             'items.*'    => 'nullable|string',
             'category.*' => 'nullable|string',
             'quantity.*' => 'nullable|string',
@@ -171,6 +180,11 @@ class InvoiceController extends Controller
             'discount.*' => 'nullable|string',
             'name_of_the_signatuaory' => 'nullable|string',
             'total_amount' => 'nullable|numeric',
+        ], [
+            'customer_name.required' => 'Customer name is required.',
+            'po_number.required' => 'PO Number is required.',
+            'due_date.required' => 'Due date is required.',
+            'items.required' => 'At least one item is required.',
         ]);
         
         DB::beginTransaction();
@@ -189,9 +203,24 @@ class InvoiceController extends Controller
             $customerName->invoice_to        = $request->invoice_to;
             $customerName->status            = 'unpaid'; // Default status
             $customerName->save();
+            
+            // Refresh to ensure invoice_id is available (it's auto-generated in boot method)
+            $customerName->refresh();
 
-            // Get invoice_id from the saved model (it's auto-generated in boot method)
+            // Get invoice_id from the saved model
             $invoiceId = $customerName->invoice_id;
+            
+            // Ensure invoice_id was generated
+            if (empty($invoiceId)) {
+                DB::rollback();
+                \Log::error('Invoice ID was not generated after save', [
+                    'customer_name' => $request->customer_name,
+                    'model_id' => $customerName->id,
+                    'invoice_id' => $invoiceId
+                ]);
+                Toastr::error('Failed to generate invoice ID. Please try again.', 'Error');
+                return redirect()->back()->withInput();
+            }
 
             // Filter out empty items before saving
             $items = $request->items ?? [];
@@ -201,36 +230,67 @@ class InvoiceController extends Controller
             $amounts = $request->amount ?? [];
             $discounts = $request->discount ?? [];
 
-            // Ensure at least one valid item
+            // Ensure at least one valid item (item name is required, category is optional for now)
             $hasValidItem = false;
+            $validItemsCount = 0;
             foreach ($items as $key => $item) {
-                if (!empty($item) && !empty($categories[$key] ?? '')) {
+                $itemTrimmed = trim($item ?? '');
+                if (!empty($itemTrimmed)) {
                     $hasValidItem = true;
-                    break;
+                    $validItemsCount++;
                 }
             }
 
             if (!$hasValidItem) {
                 DB::rollback();
-                Toastr::error('Please add at least one item with a name and category.', 'Validation Error');
+                \Log::warning('Invoice save failed: No valid items', [
+                    'items' => $items,
+                    'categories' => $categories,
+                    'invoice_id' => $invoiceId
+                ]);
+                Toastr::error('Please add at least one item with a name.', 'Validation Error');
                 return redirect()->back()->withInput();
             }
+            
+            \Log::info('Valid items found', [
+                'count' => $validItemsCount,
+                'invoice_id' => $invoiceId
+            ]);
 
             foreach ($items as $key => $item) {
-                // Skip empty rows
-                if (empty($item) || empty($categories[$key] ?? '')) {
+                // Skip empty rows (only item name is required, category is optional)
+                $itemTrimmed = trim($item ?? '');
+                if (empty($itemTrimmed)) {
                     continue;
                 }
 
                 $InvoiceDetails             = new InvoiceDetails;
                 $InvoiceDetails->invoice_id = $invoiceId;
-                $InvoiceDetails->items      = $item;
-                $InvoiceDetails->category   = $categories[$key] ?? '';
-                $InvoiceDetails->quantity   = $quantities[$key] ?? '0';
-                $InvoiceDetails->price      = $prices[$key] ?? '0';
-                $InvoiceDetails->amount     = $amounts[$key] ?? '0';
-                $InvoiceDetails->discount   = $discounts[$key] ?? '0';
-                $InvoiceDetails->save();
+                $InvoiceDetails->items      = $itemTrimmed;
+                $InvoiceDetails->category   = trim($categories[$key] ?? '');
+                $InvoiceDetails->quantity   = trim($quantities[$key] ?? '0');
+                $InvoiceDetails->price      = trim($prices[$key] ?? '0');
+                $InvoiceDetails->amount     = trim($amounts[$key] ?? '0');
+                $InvoiceDetails->discount   = trim($discounts[$key] ?? '0');
+                
+                try {
+                    $InvoiceDetails->save();
+                    \Log::info('Invoice detail saved', [
+                        'invoice_id' => $invoiceId,
+                        'item' => $itemTrimmed,
+                        'detail_id' => $InvoiceDetails->id
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    \Log::error('Failed to save invoice detail', [
+                        'invoice_id' => $invoiceId,
+                        'item' => $itemTrimmed,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    Toastr::error('Failed to save invoice item: ' . $e->getMessage(), 'Error');
+                    return redirect()->back()->withInput();
+                }
             }
 
             if ($request->hasFile('upload_sign')) {
@@ -243,20 +303,32 @@ class InvoiceController extends Controller
             // Calculate total amount if not provided
             $calculatedTotal = 0;
             foreach ($items as $key => $item) {
-                if (!empty($item) && !empty($categories[$key] ?? '')) {
+                $itemTrimmed = trim($item ?? '');
+                if (!empty($itemTrimmed)) {
                     $calculatedTotal += floatval($amounts[$key] ?? 0);
                 }
             }
 
             /** InvoiceTotalAmount */
-            $InvoiceTotalAmount                          = new InvoiceTotalAmount;
-            $InvoiceTotalAmount->invoice_id              = $invoiceId;
-            $InvoiceTotalAmount->taxable_amount          = $request->taxable_amount ?? $calculatedTotal;
-            $InvoiceTotalAmount->round_off               = $request->round_off ?? 0;
-            $InvoiceTotalAmount->total_amount            = $request->total_amount ?? $calculatedTotal;
-            $InvoiceTotalAmount->upload_sign             = $upload_sign;
-            $InvoiceTotalAmount->name_of_the_signatuaory = $request->name_of_the_signatuaory ?? '';
-            $InvoiceTotalAmount->save();
+            try {
+                $InvoiceTotalAmount                          = new InvoiceTotalAmount;
+                $InvoiceTotalAmount->invoice_id              = $invoiceId;
+                $InvoiceTotalAmount->taxable_amount          = $request->taxable_amount ?? $calculatedTotal;
+                $InvoiceTotalAmount->round_off               = $request->round_off ?? 0;
+                $InvoiceTotalAmount->total_amount            = $request->total_amount ?? $calculatedTotal;
+                $InvoiceTotalAmount->upload_sign             = $upload_sign;
+                $InvoiceTotalAmount->name_of_the_signatuaory = $request->name_of_the_signatuaory ?? '';
+                $InvoiceTotalAmount->save();
+                \Log::info('InvoiceTotalAmount saved', ['invoice_id' => $invoiceId]);
+            } catch (\Exception $e) {
+                DB::rollback();
+                \Log::error('Failed to save InvoiceTotalAmount', [
+                    'invoice_id' => $invoiceId,
+                    'error' => $e->getMessage()
+                ]);
+                Toastr::error('Failed to save invoice total: ' . $e->getMessage(), 'Error');
+                return redirect()->back()->withInput();
+            }
 
             /** InvoiceAdditionalCharges */
             if(!empty($request->service_charge)) {
@@ -278,15 +350,26 @@ class InvoiceController extends Controller
             }
 
             /** InvoicePaymentDetails */
-            $InvoicePaymentDetails                            = new InvoicePaymentDetails;
-            $InvoicePaymentDetails->invoice_id                = $invoiceId;
-            $InvoicePaymentDetails->account_holder_name       = $request->account_holder_name ?? null;
-            $InvoicePaymentDetails->bank_name                 = $request->bank_name ?? null;
-            $InvoicePaymentDetails->ifsc_code                 = $request->ifsc_code ?? null;
-            $InvoicePaymentDetails->account_number            = $request->account_number ?? null;
-            $InvoicePaymentDetails->add_terms_and_Conditions  = $request->add_terms_and_Conditions ?? null;
-            $InvoicePaymentDetails->add_notes                 = $request->add_notes ?? null;
-            $InvoicePaymentDetails->save();
+            try {
+                $InvoicePaymentDetails                            = new InvoicePaymentDetails;
+                $InvoicePaymentDetails->invoice_id                = $invoiceId;
+                $InvoicePaymentDetails->account_holder_name       = $request->account_holder_name ?? null;
+                $InvoicePaymentDetails->bank_name                 = $request->bank_name ?? null;
+                $InvoicePaymentDetails->ifsc_code                 = $request->ifsc_code ?? null;
+                $InvoicePaymentDetails->account_number            = $request->account_number ?? null;
+                $InvoicePaymentDetails->add_terms_and_Conditions  = $request->add_terms_and_Conditions ?? null;
+                $InvoicePaymentDetails->add_notes                 = $request->add_notes ?? null;
+                $InvoicePaymentDetails->save();
+                \Log::info('InvoicePaymentDetails saved', ['invoice_id' => $invoiceId]);
+            } catch (\Exception $e) {
+                DB::rollback();
+                \Log::error('Failed to save InvoicePaymentDetails', [
+                    'invoice_id' => $invoiceId,
+                    'error' => $e->getMessage()
+                ]);
+                Toastr::error('Failed to save payment details: ' . $e->getMessage(), 'Error');
+                return redirect()->back()->withInput();
+            }
 
             DB::commit();
             

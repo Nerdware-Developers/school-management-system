@@ -162,6 +162,32 @@
     </div>
 </div>
 
+{{-- Bulk Delete Modal --}}
+<div class="modal custom-modal fade" id="bulkDeleteModal" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="form-header">
+                    <h3>Delete Exam Groups</h3>
+                    <p id="bulkDeleteMessage">Are you sure you want to delete the selected exam group(s)? This will delete all exams and their results in these groups. This action cannot be undone.</p>
+                </div>
+                <div class="modal-btn delete-action">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" id="confirmBulkDelete" class="btn btn-danger continue-btn" style="border-radius: 5px !important; width: 100%;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" data-bs-dismiss="modal" class="btn btn-primary paid-cancel-btn" style="width: 100%;">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section('script')
 <style>
     tr:has(.exam-group-checkbox:checked) {
@@ -207,37 +233,49 @@
             }
         }
 
-        // Bulk delete
+        // Store selected groups for bulk delete
+        var selectedGroupsForDelete = [];
+
+        // Bulk delete button click - show modal
         $('#bulkDeleteBtn').on('click', function() {
-            var selectedGroups = [];
+            selectedGroupsForDelete = [];
             $('.exam-group-checkbox:checked').each(function() {
-                selectedGroups.push({
+                selectedGroupsForDelete.push({
                     exam_type: $(this).data('exam-type'),
                     term: $(this).data('term'),
                     class_id: $(this).data('class-id')
                 });
             });
 
-            if (selectedGroups.length === 0) {
+            if (selectedGroupsForDelete.length === 0) {
                 toastr.warning('Please select at least one exam group to delete');
                 return;
             }
 
-            if (!confirm('Are you sure you want to delete ' + selectedGroups.length + ' exam group(s)? This will delete all exams and their results in these groups. This action cannot be undone.')) {
-                return;
-            }
+            // Update modal message with count
+            var count = selectedGroupsForDelete.length;
+            var message = 'Are you sure you want to delete ' + count + ' exam group(s)? This will delete all exams and their results in these groups. This action cannot be undone.';
+            $('#bulkDeleteMessage').text(message);
+            
+            // Show modal
+            $('#bulkDeleteModal').modal('show');
+        });
 
+        // Confirm bulk delete from modal
+        $('#confirmBulkDelete').on('click', function() {
             var $btn = $(this);
+            var $modal = $('#bulkDeleteModal');
+            
+            // Disable button and show loading
             $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
 
             // Get all exam IDs for selected groups
-            var examIds = [];
             $.ajax({
                 url: '{{ route("exams.get-ids-by-groups") }}',
                 method: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
-                    groups: selectedGroups
+                    groups: selectedGroupsForDelete
                 },
                 success: function(response) {
                     if (response.success && response.exam_ids && response.exam_ids.length > 0) {
@@ -251,10 +289,14 @@
                             },
                             success: function(deleteResponse) {
                                 if (deleteResponse.success) {
+                                    $modal.modal('hide');
                                     toastr.success(deleteResponse.message);
-                                    location.reload();
+                                    setTimeout(function() {
+                                        location.reload();
+                                    }, 1000);
                                 } else {
                                     toastr.error(deleteResponse.message || 'Failed to delete exams');
+                                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
                                 }
                             },
                             error: function(xhr) {
@@ -263,21 +305,24 @@
                                     message = xhr.responseJSON.message;
                                 }
                                 toastr.error(message);
-                            },
-                            complete: function() {
-                                $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                                $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
                             }
                         });
                     } else {
                         toastr.error('No exams found to delete');
-                        $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                        $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
                     }
                 },
                 error: function(xhr) {
                     toastr.error('Failed to retrieve exam IDs');
-                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)');
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
                 }
             });
+        });
+
+        // Reset button when modal is closed
+        $('#bulkDeleteModal').on('hidden.bs.modal', function() {
+            $('#confirmBulkDelete').prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
         });
     });
 </script>

@@ -153,24 +153,25 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
 
 
     // ----------------------- invoice -----------------------------//
-    Route::controller(InvoiceController::class)->group(function () {
-        Route::get('invoice/list/page', 'invoiceList')->middleware('auth')->name('invoice/list/page'); // subjeinvoicect/list/page
-        Route::get('invoice/paid/page', 'invoicePaid')->middleware('auth')->name('invoice/paid/page'); // invoice/paid/page
-        Route::get('invoice/overdue/page', 'invoiceOverdue')->middleware('auth')->name('invoice/overdue/page'); // invoice/overdue/page
-        Route::get('invoice/draft/page', 'invoiceDraft')->middleware('auth')->name('invoice/draft/page'); // invoice/draft/page
-        Route::get('invoice/recurring/page', 'invoiceRecurring')->middleware('auth')->name('invoice/recurring/page'); // invoice/recurring/page
-        Route::get('invoice/cancelled/page', 'invoiceCancelled')->middleware('auth')->name('invoice/cancelled/page'); // invoice/cancelled/page
-        Route::get('invoice/grid/page', 'invoiceGrid')->middleware('auth')->name('invoice/grid/page'); // invoice/grid/page
-        Route::get('invoice/add/page', 'invoiceAdd')->middleware('auth')->name('invoice/add/page'); // invoice/add/page
-        Route::post('invoice/add/save', 'saveRecord')->middleware('auth')->name('invoice/add/save'); // invoice/add/save
-        Route::post('invoice/update/save', 'updateRecord')->middleware('auth')->name('invoice/update/save'); // invoice/update/save
-        Route::post('invoice/delete', 'deleteRecord')->middleware('auth')->name('invoice/delete'); // invoice/delete
-        Route::get('invoice/edit/{invoice_id}', 'invoiceEdit')->middleware('auth')->name('invoice/edit/page'); // invoice/edit/page
-        Route::get('invoice/view/{invoice_id}', 'invoiceView')->middleware('auth')->name('invoice/view/page'); // invoice/view/page
-        Route::get('invoice/settings/page', 'invoiceSettings')->middleware('auth')->name('invoice/settings/page'); // invoice/settings/page
-        Route::get('invoice/settings/tax/page', 'invoiceSettingsTax')->middleware('auth')->name('invoice/settings/tax/page'); // invoice/settings/tax/page
-        Route::get('invoice/settings/bank/page', 'invoiceSettingsBank')->middleware('auth')->name('invoice/settings/bank/page'); // invoice/settings/bank/page
-    });
+    // Invoice section removed - not in use
+    // Route::controller(InvoiceController::class)->group(function () {
+    //     Route::get('invoice/list/page', 'invoiceList')->middleware('auth')->name('invoice/list/page');
+    //     Route::get('invoice/paid/page', 'invoicePaid')->middleware('auth')->name('invoice/paid/page');
+    //     Route::get('invoice/overdue/page', 'invoiceOverdue')->middleware('auth')->name('invoice/overdue/page');
+    //     Route::get('invoice/draft/page', 'invoiceDraft')->middleware('auth')->name('invoice/draft/page');
+    //     Route::get('invoice/recurring/page', 'invoiceRecurring')->middleware('auth')->name('invoice/recurring/page');
+    //     Route::get('invoice/cancelled/page', 'invoiceCancelled')->middleware('auth')->name('invoice/cancelled/page');
+    //     Route::get('invoice/grid/page', 'invoiceGrid')->middleware('auth')->name('invoice/grid/page');
+    //     Route::get('invoice/add/page', 'invoiceAdd')->middleware('auth')->name('invoice/add/page');
+    //     Route::post('invoice/add/save', 'saveRecord')->middleware('auth')->name('invoice/add/save');
+    //     Route::post('invoice/update/save', 'updateRecord')->middleware('auth')->name('invoice/update/save');
+    //     Route::post('invoice/delete', 'deleteRecord')->middleware('auth')->name('invoice/delete');
+    //     Route::get('invoice/edit/{invoice_id}', 'invoiceEdit')->middleware('auth')->name('invoice/edit/page');
+    //     Route::get('invoice/view/{invoice_id}', 'invoiceView')->middleware('auth')->name('invoice/view/page');
+    //     Route::get('invoice/settings/page', 'invoiceSettings')->middleware('auth')->name('invoice/settings/page');
+    //     Route::get('invoice/settings/tax/page', 'invoiceSettingsTax')->middleware('auth')->name('invoice/settings/tax/page');
+    //     Route::get('invoice/settings/bank/page', 'invoiceSettingsBank')->middleware('auth')->name('invoice/settings/bank/page');
+    // });
 
    // ----------------------- accounts ----------------------------//
     Route::controller(AccountsController::class)->group(function () {
