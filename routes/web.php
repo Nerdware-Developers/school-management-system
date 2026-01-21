@@ -103,6 +103,8 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::patch('student/{student}/terms/{term}/update-year', 'updateTermYear')->middleware('auth')->name('student.terms.update-year');
         Route::patch('student/{student}/terms/{term}/update-fee', 'updateTermFee')->middleware('auth')->name('student.terms.update-fee');
         Route::get('student/photo/{filename}', 'studentPhoto')->name('student.photo');
+        Route::get('student/search', 'search')->middleware('auth')->name('student.search');
+        Route::get('student/get-fee-by-grade', 'getFeeByGrade')->middleware('auth')->name('student.get-fee-by-grade');
 
     });
 
@@ -178,7 +180,6 @@ Route::group(['namespace' => 'App\Http\Controllers'],function()
         Route::get('account/fees/collections/page', 'index')->middleware('auth')->name('account/fees/collections/page');
         Route::get('add/fees/collection/page', 'addFeesCollection')->middleware('auth')->name('add/fees/collection/page');
         Route::post('fees/collection/save', 'saveRecord')->middleware('auth')->name('fees/collection/save');
-        Route::get('student/search', 'search')->middleware('auth')->name('student.search');
         Route::get('student/fees-info/{id}', 'getFeesInfo')->middleware('auth')->name('student.fees.info');
     });
 

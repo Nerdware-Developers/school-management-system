@@ -34,6 +34,69 @@ class StudentController extends Controller
         return response()->json($formatted);
     }
 
+    /**
+     * Get fee amount for a specific grade (AJAX endpoint)
+     */
+    public function getFeeByGrade(Request $request)
+    {
+        try {
+            $request->validate([
+                'grade' => 'required|string',
+            ]);
+
+            $grade = $request->input('grade');
+            
+            // Check if grade fee structure table has any data
+            $hasData = \App\Models\GradeFee::where('is_active', true)->exists();
+            if (!$hasData) {
+                \Log::warning('Grade fee structure table is empty. Please run the seeder.');
+                return response()->json([
+                    'success' => false,
+                    'fee_amount' => 0,
+                    'grade' => $grade,
+                    'message' => 'Grade fee structure not found. Please contact administrator to set up fee structure.',
+                    'debug' => 'Database table is empty'
+                ]);
+            }
+            
+            // Get all available grades for debugging
+            $availableGrades = \App\Models\GradeFee::where('is_active', true)
+                ->pluck('grade')
+                ->toArray();
+            
+            $feeAmount = $this->getFeeAmountForGrade($grade);
+
+            \Log::info('Fee lookup result', [
+                'grade' => $grade,
+                'fee_amount' => $feeAmount,
+                'available_grades' => $availableGrades
+            ]);
+
+            return response()->json([
+                'success' => $feeAmount > 0,
+                'fee_amount' => $feeAmount,
+                'grade' => $grade,
+                'message' => $feeAmount > 0 
+                    ? 'Fee found' 
+                    : 'No fee structure found for grade: ' . $grade . '. Available grades: ' . implode(', ', $availableGrades),
+                'available_grades' => $availableGrades
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting fee by grade', [
+                'grade' => $request->input('grade'),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'fee_amount' => 0,
+                'grade' => $request->input('grade'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /** index page student list */
     public function student(Request $request)
@@ -449,6 +512,9 @@ class StudentController extends Controller
             'admission_number'  => 'required|string|unique:students,admission_number',
             'address'           => 'nullable|string|max:255',
             'image'             => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,bmp,tiff|max:5120',
+            'former_school'     => 'nullable|string|max:255',
+            'residence'         => 'nullable|string|max:255',
+            'term'              => 'nullable|string|max:50',
 
             // 👨‍👩‍👧 Parent Information
             'parent_name'       => 'nullable|string|max:255',
@@ -458,6 +524,12 @@ class StudentController extends Controller
             'guardian_name'     => 'nullable|string|max:255',
             'guardian_number'   => 'nullable|string|max:20',
             'guardian_email'    => 'nullable|email|max:255',
+            'father_name'       => 'required|string|max:255',
+            'father_telephone'  => 'required|string|max:20',
+            'mother_name'       => 'required|string|max:255',
+            'mother_telephone'  => 'required|string|max:20',
+            'occupation'        => 'nullable|string|max:255',
+            'religion'          => 'nullable|string|max:255',
 
             // ⚽ Co-Activities
             'sports'            => 'nullable|string|max:255',
@@ -469,7 +541,11 @@ class StudentController extends Controller
             'known_allergies'   => 'nullable|string|max:255',
             'medical_condition' => 'nullable|string|max:255',
             'doctor_contact'    => 'nullable|string|max:20',
-            'emergency_contact' => 'nullable|string|max:20',
+            'emergency_contact' => 'nullable|string|max:255',
+            'has_ailment'       => 'nullable|boolean',
+            'ailment_details'   => 'nullable|string',
+            'emergency_contact_name' => 'required|string|max:255',
+            'emergency_contact_telephone' => 'required|string|max:20',
 
             // 💰 Financial Information
             'term_name'         => 'nullable|string|max:100',
@@ -482,7 +558,18 @@ class StudentController extends Controller
             'next_due_date'     => 'nullable|date',
             'scholarship'       => 'nullable|string|max:255',
             'sponsor_name'      => 'nullable|string|max:255',
+
+            // 🚌 Transport Information
+            'uses_transport'    => 'nullable|boolean',
+            'transport_section' => 'nullable|integer|in:1,2,3',
         ]);
+
+        // Custom validation: If uses_transport is checked, transport_section is required
+        if ($request->has('uses_transport') && $request->input('uses_transport') == '1') {
+            $request->validate([
+                'transport_section' => 'required|integer|in:1,2,3',
+            ]);
+        }
         // ✅ Fix date format (convert DD-MM-YYYY → YYYY-MM-DD)
         if ($request->filled('date_of_birth')) {
             try {
@@ -538,6 +625,22 @@ class StudentController extends Controller
                 $feeAmount = (float) $requestFeeAmount;
             }
             
+            // Calculate transport fee if student uses transport
+            $transportFee = 0;
+            if ($request->input('uses_transport') && $request->filled('transport_section')) {
+                $transportSection = (int) $request->input('transport_section');
+                $transportFees = [
+                    1 => 3000,  // Section 1: MUWA, BARAKA, KANGEMA, UMOJA ONE, URITHI
+                    2 => 4000,  // Section 2: KIAMUNYEKI, MURUNYU, MODERN, UMOJA TWO
+                    3 => 6000   // Section 3: ST. GABRIEL, KIRATINA, FREE AREA, PIPE LINE
+                ];
+                $transportFee = $transportFees[$transportSection] ?? 0;
+            }
+            
+            // Total fee = tuition fee + transport fee
+            // Note: We store only tuition fee in fee_amount, transport is stored separately
+            // The total fee calculation is done when displaying/calculating balance
+            
             $amountPaid = (float) $request->input('amount_paid', 0);
             
             // Set financial year from settings if not provided
@@ -547,13 +650,20 @@ class StudentController extends Controller
                 $student->financial_year = $request->input('financial_year');
             }
             
+            // Handle boolean fields
+            $student->uses_transport = $request->has('uses_transport') && $request->input('uses_transport') == '1';
+            $student->has_ailment = $request->has('has_ailment') && $request->input('has_ailment') == '1';
+            
             // Save student first (without balance - will be set after fee term creation)
+            // Store only tuition fee in fee_amount, transport fee is stored in transport_section
             $student->fee_amount = $feeAmount;
             $student->save();
 
             // CRITICAL: Create fee term FIRST for the current financial year
             // This ensures we have a fee term before calculating balance
-            $this->syncInitialFeeTerm($student, $request, $feeAmount, $amountPaid);
+            // Pass total fee (tuition + transport) to fee term
+            $totalFeeForTerm = $feeAmount + $transportFee;
+            $this->syncInitialFeeTerm($student, $request, $totalFeeForTerm, $amountPaid);
             
             // CRITICAL: Run comprehensive fee calculation and synchronization
             // This ensures student balance matches current term's closing_balance
@@ -1342,12 +1452,18 @@ class StudentController extends Controller
             return 0;
         }
 
-        // Normalize grade name - try to match common variations
+        // Normalize grade name - trim and uppercase
         $normalizedGrade = strtoupper(trim($grade));
+        
+        \Log::info('Looking up fee for grade', [
+            'original' => $grade,
+            'normalized' => $normalizedGrade
+        ]);
         
         // Try exact match first
         $gradeFee = \App\Models\GradeFee::getFeeForGrade($normalizedGrade);
         if ($gradeFee) {
+            \Log::info('Found exact match', ['grade' => $normalizedGrade, 'fee' => $gradeFee->total_fee]);
             return (float) $gradeFee->total_fee;
         }
 
@@ -1355,18 +1471,35 @@ class StudentController extends Controller
         // Handle cases like "Grade 1" vs "GRADE 1", "PP1" vs "PP 1", etc.
         $variations = [
             $normalizedGrade,
-            str_replace(' ', '', $normalizedGrade),
-            str_replace('GRADE', 'GRADE ', $normalizedGrade),
-            str_replace('GRADE ', 'GRADE', $normalizedGrade),
+            str_replace(' ', '', $normalizedGrade), // "GRADE1"
+            str_replace('GRADE', 'GRADE ', $normalizedGrade), // "GRADE 1" -> "GRADE  1" (double space)
+            str_replace('GRADE ', 'GRADE', $normalizedGrade), // "GRADE 1" -> "GRADE1"
+            preg_replace('/\s+/', ' ', $normalizedGrade), // Normalize multiple spaces
         ];
 
         foreach ($variations as $variation) {
+            if ($variation === $normalizedGrade) {
+                continue; // Already tried
+            }
             $gradeFee = \App\Models\GradeFee::getFeeForGrade($variation);
             if ($gradeFee) {
+                \Log::info('Found match with variation', ['variation' => $variation, 'fee' => $gradeFee->total_fee]);
                 return (float) $gradeFee->total_fee;
             }
         }
 
+        // Last resort: try case-insensitive search in database
+        $gradeFee = \App\Models\GradeFee::whereRaw('UPPER(grade) = ?', [strtoupper($grade)])
+            ->where('is_active', true)
+            ->first();
+        
+        if ($gradeFee) {
+            \Log::info('Found case-insensitive match', ['grade' => $gradeFee->grade, 'fee' => $gradeFee->total_fee]);
+            return (float) $gradeFee->total_fee;
+        }
+
+        \Log::warning('No fee found for grade', ['grade' => $grade, 'normalized' => $normalizedGrade]);
+        
         // If no match found, return 0 (will fallback to default_fee_amount in calling code)
         return 0;
     }

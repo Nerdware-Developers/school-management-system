@@ -1,5 +1,98 @@
 <div class="card p-4 shadow-sm rounded-3">
     <h4 class="mb-3">Financial Information</h4>
+    
+    <!-- Transport Section -->
+    <div class="card mb-4" style="background-color: #f8f9fa;">
+        <div class="card-body">
+            <h5 class="mb-3">Transport Information</h5>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="uses_transport" id="uses_transport" value="1" {{ old('uses_transport') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="uses_transport">
+                            <strong>Student Uses Transport</strong>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transport_section_container" style="display: none;">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Select Transport Section <span class="login-danger">*</span></label>
+                    </div>
+                    
+                    <!-- Section 1 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input transport-section" type="radio" name="transport_section" id="transport_section_1" value="1" {{ old('transport_section') == '1' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="transport_section_1">
+                                        <strong>Section 1</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    MUWA, BARAKA, KANGEMA, UMOJA ONE, URITHI
+                                </small>
+                                <div class="mt-2">
+                                    <strong class="text-primary">Fee: Ksh 3,000/=</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input transport-section" type="radio" name="transport_section" id="transport_section_2" value="2" {{ old('transport_section') == '2' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="transport_section_2">
+                                        <strong>Section 2</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    KIAMUNYEKI, MURUNYU, MODERN, UMOJA TWO
+                                </small>
+                                <div class="mt-2">
+                                    <strong class="text-success">Fee: Ksh 4,000/=</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input transport-section" type="radio" name="transport_section" id="transport_section_3" value="3" {{ old('transport_section') == '3' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="transport_section_3">
+                                        <strong>Section 3</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    ST. GABRIEL, KIRATINA, FREE AREA, PIPE LINE
+                                </small>
+                                <div class="mt-2">
+                                    <strong class="text-warning">Fee: Ksh 6,000/=</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <strong>Transport Fee:</strong> <span id="transport_fee_display">Ksh 0/=</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Term Name -->
         <div class="col-12 col-sm-4">
@@ -80,6 +173,15 @@
                 @error('balance')
                     <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
                 @enderror
+            </div>
+        </div>
+
+        <!-- Total Fee (Tuition + Transport) -->
+        <div class="col-12 col-sm-4">
+            <div class="form-group local-forms">
+                <label>Total Fee (Tuition + Transport)<span class="login-danger"></span></label>
+                <input type="text" class="form-control" id="total_fee_display" readonly placeholder="Auto Calculated" value="0">
+                <small class="text-muted">This includes tuition fee and transport fee (if applicable)</small>
             </div>
         </div>
 
@@ -179,20 +281,113 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Auto calculate balance
+    // Transport fee constants
+    const TRANSPORT_FEES = {
+        1: 3000,  // Section 1
+        2: 4000,  // Section 2
+        3: 6000   // Section 3
+    };
+
+    // Get elements
+    const usesTransport = document.getElementById('uses_transport');
+    const transportSectionContainer = document.getElementById('transport_section_container');
+    const transportSections = document.querySelectorAll('.transport-section');
+    const transportFeeDisplay = document.getElementById('transport_fee_display');
     const feeAmount = document.querySelector('input[name="fee_amount"]');
     const amountPaid = document.querySelector('input[name="amount_paid"]');
     const balance = document.querySelector('input[name="balance"]');
+    const totalFeeDisplay = document.getElementById('total_fee_display');
 
-    function updateBalance() {
-        const fee = parseFloat(feeAmount.value) || 0;
-        const paid = parseFloat(amountPaid.value) || 0;
-        balance.value = (fee - paid).toFixed(2);
+    // Toggle transport section visibility
+    function toggleTransportSection() {
+        if (usesTransport.checked) {
+            transportSectionContainer.style.display = 'block';
+            // Require transport section selection
+            transportSections.forEach(section => {
+                section.required = true;
+            });
+        } else {
+            transportSectionContainer.style.display = 'none';
+            // Uncheck all transport sections
+            transportSections.forEach(section => {
+                section.checked = false;
+                section.required = false;
+            });
+            updateTransportFee();
+        }
     }
+
+    // Update transport fee display
+    function updateTransportFee() {
+        let transportFee = 0;
+        if (usesTransport.checked) {
+            transportSections.forEach(section => {
+                if (section.checked) {
+                    transportFee = TRANSPORT_FEES[parseInt(section.value)];
+                }
+            });
+        }
+        transportFeeDisplay.textContent = 'Ksh ' + transportFee.toLocaleString('en-KE') + '/=';
+        updateTotalFee();
+    }
+
+    // Update total fee (tuition + transport)
+    function updateTotalFee() {
+        const tuitionFee = parseFloat(feeAmount.value) || 0;
+        let transportFee = 0;
+        
+        if (usesTransport.checked) {
+            transportSections.forEach(section => {
+                if (section.checked) {
+                    transportFee = TRANSPORT_FEES[parseInt(section.value)];
+                }
+            });
+        }
+        
+        const totalFee = tuitionFee + transportFee;
+        totalFeeDisplay.value = totalFee.toFixed(2);
+        
+        // Update balance calculation
+        updateBalance();
+    }
+
+    // Auto calculate balance
+    function updateBalance() {
+        const tuitionFee = parseFloat(feeAmount.value) || 0;
+        let transportFee = 0;
+        
+        if (usesTransport.checked) {
+            transportSections.forEach(section => {
+                if (section.checked) {
+                    transportFee = TRANSPORT_FEES[parseInt(section.value)];
+                }
+            });
+        }
+        
+        const totalFee = tuitionFee + transportFee;
+        const paid = parseFloat(amountPaid.value) || 0;
+        const calculatedBalance = totalFee - paid;
+        
+        balance.value = calculatedBalance.toFixed(2);
+    }
+
+    // Event listeners
+    if (usesTransport) {
+        usesTransport.addEventListener('change', toggleTransportSection);
+        toggleTransportSection(); // Initialize on page load
+    }
+
+    transportSections.forEach(section => {
+        section.addEventListener('change', updateTransportFee);
+    });
 
     if (feeAmount && amountPaid && balance) {
-        feeAmount.addEventListener('input', updateBalance);
+        feeAmount.addEventListener('input', updateTotalFee);
         amountPaid.addEventListener('input', updateBalance);
     }
+
+    // Initialize calculations on page load
+    updateTransportFee();
+    updateTotalFee();
 });
 </script>

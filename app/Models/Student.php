@@ -20,6 +20,9 @@ class Student extends Model
         'admission_number',
         'address',
         'image',
+        'former_school',
+        'residence',
+        'term',
 
         // 👨‍👩‍👧 Parent Information
         'parent_name',
@@ -29,6 +32,12 @@ class Student extends Model
         'guardian_name',
         'guardian_number',
         'guardian_email',
+        'father_name',
+        'father_telephone',
+        'mother_name',
+        'mother_telephone',
+        'occupation',
+        'religion',
 
         // ⚽ Co-Activities
         'sports',
@@ -40,6 +49,10 @@ class Student extends Model
         'medical_condition',
         'doctor_contact',
         'emergency_contact',
+        'has_ailment',
+        'ailment_details',
+        'emergency_contact_name',
+        'emergency_contact_telephone',
 
         // 💰 Financial Information
         'fee_amount',
@@ -52,6 +65,10 @@ class Student extends Model
         'next_due_date',
         'scholarship',
         'sponsor_name',
+        
+        // 🚌 Transport Information
+        'uses_transport',
+        'transport_section',
     ];
 
     public function feeTerms()
